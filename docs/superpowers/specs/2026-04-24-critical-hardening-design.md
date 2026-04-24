@@ -46,6 +46,15 @@ This is the recommended first pass because the subagent audits found P1/P2 corre
 
 Configured adapters should stop relying on broad tokens like `/jobs/`, `/job/`, `shine.com`, or `recruitment` without host allowlists.
 
+Minimum validator rules:
+
+- Reject any absolute URL whose hostname is not an exact allowlist match or a subdomain of an allowlisted host suffix.
+- Reject known redirect/search hosts unless the resolved destination host is allowlisted.
+- Require a title between 4 and 140 characters after cleanup.
+- Require at least one role/query term in the title, URL slug, or containing text.
+- Require one job-page signal in URL path or nearby text: `job`, `jobs`, `opening`, `position`, `requisition`, `posting`, `career`, or a source-specific equivalent.
+- Reject policy, login, signup, help, blog, press, investor, location-only, team-only, and benefits-only pages.
+
 ### Scan Accounting
 
 The scan total should reflect persisted unique normalized jobs, not raw scraped rows.
@@ -62,6 +71,14 @@ Unknown or stale selected sources should produce failed `scan_portal_runs` with 
 
 If every selected source is invalid, the scan should finish as failed with explicit invalid-source diagnostics and `failedPortals` greater than zero.
 
+Minimum diagnostic fields:
+
+- The original selected source ID.
+- Failure code `unknown_source`.
+- Message containing the source ID and stating that no adapter is configured.
+- `jobsFound: 0`.
+- Started and finished timestamps.
+
 ### Privacy-Safe Logs
 
 Raw third-party payloads and failure snapshots should be opt-in or redacted by default.
@@ -69,8 +86,10 @@ Raw third-party payloads and failure snapshots should be opt-in or redacted by d
 Minimum behavior:
 
 - Redact likely emails, phone numbers, query tokens, auth-like values, and very long page bodies.
-- Cap snapshot size.
-- Avoid full HTML snapshots unless an explicit debug flag is enabled.
+- Cap redacted raw payload output at 50 KB per job.
+- Cap default failure snapshot text excerpts at 20 KB.
+- Avoid full HTML snapshots unless an explicit debug flag such as `JOBHUNT_DEBUG_SNAPSHOTS=1` is enabled.
+- When full snapshots are enabled, cap stored HTML at 350 KB and still redact obvious secrets.
 - Keep enough metadata to debug source failure: source, code, URL host/path, timestamp, and short text excerpt.
 
 ## Mobile UX And Accessibility
@@ -86,6 +105,17 @@ Preferred first-pass design:
 - Touch targets are at least 44px.
 - Active route is visually and semantically clear.
 - Page content gets bottom padding so the nav does not cover CTAs.
+
+Route map:
+
+- Today: primary command center and next actions.
+- Discover: ranked jobs, source scans, source health, and apply/document actions.
+- Pipeline: saved/applied roles and status tracking.
+- Documents: generated resumes, cover letters, outreach notes, and ATS reports.
+- Coach: profile/job-search Q&A.
+- Settings: API key, setup, and configuration.
+
+Post-onboarding mobile users must be able to reach scan results, job actions, document downloads, and pipeline tracking through this nav.
 
 ### Form And Icon Accessibility
 
@@ -160,12 +190,12 @@ Manual validation:
 
 ## Acceptance Criteria
 
-- The app still follows the existing onboarding -> preferences -> scan -> dashboard flow.
+- The app still follows the full existing flow: API key -> resume upload -> resume analysis -> clarification -> preferences -> scan -> ranked dashboard/Discover -> fit/doc/outreach actions -> external apply -> mark applied -> pipeline tracking.
 - No broad fallback adapter can persist arbitrary wrong-domain links as jobs.
 - Scan total jobs match persisted unique jobs.
 - Unknown selected sources are visible as failed source runs.
 - Naukri API fallback does not persist placeholder labels as values.
-- Scraping debug artifacts are redacted or gated.
+- Scraping debug artifacts follow the redaction and size limits in this spec.
 - Mobile users can navigate between core app pages after onboarding.
 - High-use controls have accessible names.
 - Modal-like surfaces are announced as dialogs.
