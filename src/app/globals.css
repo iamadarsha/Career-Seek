@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Apple HIG Light Theme Inspired */
+  --background: #F5F5F7;
+  --foreground: #1D1D1F;
+  
+  --sidebar-bg: rgba(245, 245, 247, 0.8);
+  --sidebar-border: rgba(0, 0, 0, 0.1);
+  
+  --card-bg: #FFFFFF;
+  --card-border: rgba(0, 0, 0, 0.05);
+  
+  --primary: #007AFF;
+  --primary-hover: #0066CC;
+  --primary-foreground: #FFFFFF;
+  
+  --muted: #E5E5EA;
+  --muted-foreground: #86868B;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Apple HIG Dark Theme Inspired */
+    --background: #000000;
+    --foreground: #F5F5F7;
+    
+    --sidebar-bg: rgba(29, 29, 31, 0.8);
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    
+    --card-bg: #1D1D1F;
+    --card-border: rgba(255, 255, 255, 0.05);
+    
+    --primary: #0A84FF;
+    --primary-hover: #409CFF;
+    --primary-foreground: #FFFFFF;
+    
+    --muted: #2C2C2E;
+    --muted-foreground: #86868B;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glass effect utility class */
+.glass {
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+.bg-glass {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  .bg-glass {
+    background: rgba(29, 29, 31, 0.7);
+  }
+}
+
+.shadow-apple {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.shadow-apple-hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.rounded-apple {
+  border-radius: 12px;
+}
+
+.rounded-apple-lg {
+  border-radius: 20px;
+}
+
+.rounded-apple-xl {
+  border-radius: 28px;
+}
+
+.rounded-apple-sm {
+  border-radius: 8px;
+}
+
+.glass-card {
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+
+/* Custom Scrollbar for premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
