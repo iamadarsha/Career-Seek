@@ -1,7 +1,7 @@
 import Redis from 'ioredis';
 import { logger } from '@/lib/logger';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 export function createRedisConnection() {
   const connection = new Redis(redisUrl, {
@@ -25,15 +25,17 @@ export async function closeRedisConnection() {
   }
 }
 
-export async function assertRedisReady(timeoutMs = 2_000) {
+export async function assertRedisReady(timeoutMs = 3_000) {
   const probe = new Redis(redisUrl, {
     lazyConnect: true,
-    maxRetriesPerRequest: 1,
+    maxRetriesPerRequest: 0,
     retryStrategy: () => null,
     connectTimeout: timeoutMs,
+    enableOfflineQueue: false,
   });
   probe.on('error', () => undefined);
   try {
+    await probe.connect();
     await probe.ping();
   } catch (error) {
     throw new Error(`Redis is required for background jobs but is not reachable at ${redisUrl}. Run ./setup.sh --repair, run npm run launch, or set REDIS_URL to a reachable local Redis.`);

@@ -63,12 +63,14 @@ async function redisHealth(): Promise<HealthCheckItem> {
   const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
   const client = new Redis(redisUrl, {
     lazyConnect: true,
-    maxRetriesPerRequest: 1,
-    connectTimeout: 1_000,
+    maxRetriesPerRequest: 0,
+    connectTimeout: 3_000,
     retryStrategy: () => null,
+    enableOfflineQueue: false,
   });
   client.on('error', () => undefined);
   try {
+    await withTimeout(client.connect(), 3_000);
     const pong = await withTimeout(client.ping(), 2_000);
     return check('redis', 'Redis queue', pong === 'PONG' ? 'pass' : 'warn', 'Redis is reachable for BullMQ queues.', undefined, { redisUrl });
   } catch (error) {
