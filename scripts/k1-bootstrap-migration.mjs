@@ -21,8 +21,9 @@ try {
     envLocal.split('\n').forEach(line => {
       const [key, ...rest] = line.split('=');
       const value = rest.join('=');
-      if (key && value) {
-        process.env[key.trim()] = value.trim();
+      const envKey = key?.trim();
+      if (envKey && value && !process.env[envKey]) {
+        process.env[envKey] = value.trim();
       }
     });
   }
@@ -40,6 +41,16 @@ db.pragma('foreign_keys = ON');
 
 const now = Math.floor(Date.now() / 1000); // unix seconds (SQLite timestamp mode stores seconds)
 
+function tableExists(table) {
+  return Boolean(
+    db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").get(table),
+  );
+}
+
+function tableNameFromAlter(sql) {
+  return sql.match(/ALTER TABLE\s+(\S+)/i)?.[1];
+}
+
 // ─── Step 1: Add ownership columns if missing ─────────────────────────────────
 
 const alterStatements = [
@@ -53,6 +64,14 @@ const alterStatements = [
   'ALTER TABLE document_assets ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)',
   'ALTER TABLE applications ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)',
   'ALTER TABLE document_chunks ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)',
+  'ALTER TABLE document_chunks ADD COLUMN embedding_provider TEXT',
+  'ALTER TABLE document_chunks ADD COLUMN embedding_model TEXT',
+  'ALTER TABLE document_chunks ADD COLUMN embedding_dimensions INTEGER',
+  'ALTER TABLE document_chunks ADD COLUMN embedding_mode TEXT',
+  'ALTER TABLE index_runs ADD COLUMN embedding_provider TEXT',
+  'ALTER TABLE index_runs ADD COLUMN embedding_model TEXT',
+  'ALTER TABLE index_runs ADD COLUMN embedding_dimensions INTEGER',
+  'ALTER TABLE index_runs ADD COLUMN embedding_mode TEXT',
   'ALTER TABLE saved_jobs ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)',
   'ALTER TABLE generated_documents ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)',
   // userId columns
@@ -73,6 +92,10 @@ const alterStatements = [
 console.log('Step 1: Adding ownership columns (ignoring duplicates)...');
 for (const sql of alterStatements) {
   try {
+    const table = tableNameFromAlter(sql);
+    if (table && !tableExists(table)) {
+      continue;
+    }
     db.prepare(sql).run();
     const col = sql.match(/ADD COLUMN (\S+)/)?.[1];
     console.log(`  + ${col} added`);
@@ -141,6 +164,7 @@ const profileTables = [
 console.log('\nStep 4: Backfilling profile_id...');
 for (const table of profileTables) {
   try {
+    if (!tableExists(table)) continue;
     const r = db.prepare(
       `UPDATE ${table} SET profile_id = ? WHERE profile_id IS NULL`,
     ).run(defaultProfileId);
@@ -165,6 +189,7 @@ const userTables = [
 console.log('\nStep 5: Backfilling user_id...');
 for (const table of userTables) {
   try {
+    if (!tableExists(table)) continue;
     const r = db.prepare(
       `UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`,
     ).run(bootstrapUserId);
@@ -179,6 +204,7 @@ const dualTables = ['analytics_events', 'insight_items', 'weekly_reviews', 'expe
 console.log('\nStep 5b: Backfilling profile_id on dual-ownership tables...');
 for (const table of dualTables) {
   try {
+    if (!tableExists(table)) continue;
     const r = db.prepare(
       `UPDATE ${table} SET profile_id = ? WHERE profile_id IS NULL`,
     ).run(defaultProfileId);

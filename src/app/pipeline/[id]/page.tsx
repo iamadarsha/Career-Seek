@@ -18,19 +18,20 @@ import {
   actionGetApplicationContacts, actionListContacts, actionCreateContact, actionLinkContactToApplication,
   actionGenerateEmailDraft, actionListEmailDrafts, actionExportEmailDraft,
 } from '../pipeline-actions';
+import { AdvisoryEstimateLabel } from '@/components/ui/AdvisoryEstimateLabel';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  saved: { label: 'Saved', color: '#86868B', bg: 'rgba(134,134,139,0.1)' },
-  preparing: { label: 'Preparing', color: '#FF9500', bg: 'rgba(255,149,0,0.1)' },
-  applied: { label: 'Applied', color: '#007AFF', bg: 'rgba(0,122,255,0.1)' },
-  follow_up_due: { label: 'Follow-up Due', color: '#FF3B30', bg: 'rgba(255,59,48,0.1)' },
-  recruiter_replied: { label: 'Recruiter Replied', color: '#34C759', bg: 'rgba(52,199,89,0.1)' },
-  interview_scheduled: { label: 'Interview Scheduled', color: '#AF52DE', bg: 'rgba(175,82,222,0.1)' },
-  interviewed: { label: 'Interviewed', color: '#5856D6', bg: 'rgba(88,86,214,0.1)' },
-  assessment: { label: 'Assessment', color: '#FF9500', bg: 'rgba(255,149,0,0.1)' },
-  offer: { label: 'Offer', color: '#34C759', bg: 'rgba(52,199,89,0.1)' },
-  rejected: { label: 'Rejected', color: '#FF3B30', bg: 'rgba(255,59,48,0.1)' },
-  archived: { label: 'Archived', color: '#8E8E93', bg: 'rgba(142,142,147,0.1)' },
+  saved: { label: 'Saved', color: '#6A6A6A', bg: '#F7F7F7' },
+  preparing: { label: 'Preparing', color: '#B35C00', bg: '#FFF7E6' },
+  applied: { label: 'Applied', color: '#FF385C', bg: 'rgba(255,56,92,0.12)' },
+  follow_up_due: { label: 'Follow-up Due', color: '#C13515', bg: '#FFF1ED' },
+  recruiter_replied: { label: 'Recruiter Replied', color: '#008A05', bg: '#EEF8EE' },
+  interview_scheduled: { label: 'Interview Scheduled', color: '#484848', bg: '#F2F2F2' },
+  interviewed: { label: 'Interviewed', color: '#222222', bg: '#F7F7F7' },
+  assessment: { label: 'Assessment', color: '#B35C00', bg: '#FFF7E6' },
+  offer: { label: 'Offer', color: '#008A05', bg: '#EEF8EE' },
+  rejected: { label: 'Rejected', color: '#C13515', bg: '#FFF1ED' },
+  archived: { label: 'Archived', color: '#6A6A6A', bg: '#F2F2F2' },
 };
 
 const NOTE_CATEGORIES = ['general','recruiter','interview','salary','referral','follow_up'];
@@ -144,22 +145,22 @@ export default function ApplicationDetailPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Back + Actions */}
-      <div className="flex items-center justify-between">
-        <Link href="/pipeline" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Link href="/pipeline" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Pipeline
         </Link>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <button
             onClick={handleExportPacket}
             disabled={busyAction === 'packet'}
-            className="px-3 py-1.5 text-xs border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5"
+            className="inline-flex min-h-11 items-center rounded-apple border border-card-border px-3 py-2 text-xs font-semibold hover:bg-surface-container-low disabled:opacity-50"
           >
             <span className="inline-flex items-center gap-1"><Download className="w-3.5 h-3.5" /> Export Packet</span>
           </button>
           <button
             onClick={handleExportFollowUpCalendar}
             disabled={busyAction === 'followup-calendar'}
-            className="px-3 py-1.5 text-xs border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5"
+            className="inline-flex min-h-11 items-center rounded-apple border border-card-border px-3 py-2 text-xs font-semibold hover:bg-surface-container-low disabled:opacity-50"
           >
             <span className="inline-flex items-center gap-1"><CalendarPlus className="w-3.5 h-3.5" /> Follow-up .ics</span>
           </button>
@@ -167,39 +168,52 @@ export default function ApplicationDetailPage() {
             <button
               onClick={handleExportInterviewCalendar}
               disabled={busyAction === 'interview-calendar'}
-              className="px-3 py-1.5 text-xs border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5"
+              className="inline-flex min-h-11 items-center rounded-apple border border-card-border px-3 py-2 text-xs font-semibold hover:bg-surface-container-low disabled:opacity-50"
             >
               <span className="inline-flex items-center gap-1"><CalendarPlus className="w-3.5 h-3.5" /> Interview .ics</span>
             </button>
           )}
           {app.url && (
-            <a href={app.url} target="_blank" rel="noopener" className="p-2 text-muted-foreground hover:text-primary rounded-apple transition-colors">
+            <a
+              href={app.url}
+              target="_blank"
+              rel="noopener"
+              aria-label={`Open job posting for ${app.title} at ${app.company}`}
+              title={`Open job posting for ${app.title} at ${app.company}`}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-apple border border-card-border text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+            >
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
-          <button onClick={handleDelete} className="p-2 text-muted-foreground hover:text-red-500 rounded-apple transition-colors">
+          <button
+            onClick={handleDelete}
+            aria-label={`Delete application for ${app.title} at ${app.company}`}
+            title={`Delete application for ${app.title} at ${app.company}`}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-apple border border-card-border text-muted-foreground transition-colors hover:border-danger-border hover:text-danger"
+          >
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Header Card */}
-      <div className="bg-card border border-card-border rounded-apple-lg p-6 shadow-sm">
-        <div className="flex items-start justify-between mb-4">
+      <div className="apple-card p-6 shadow-golden-sm">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight">{app.title}</h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1"><Building2 className="w-4 h-4" />{app.company}</span>
-              {app.location && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" />{app.location}</span>}
+            <h1 className="text-2xl font-semibold leading-tight">{app.title}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><Building2 className="w-4 h-4" />{app.company}</span>
+              {app.location && <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4" />{app.location}</span>}
               {app.portal && <span>{app.portal}</span>}
             </div>
           </div>
           {app.scoreSnapshot && (
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <span className="text-3xl font-bold" style={{ color: app.scoreSnapshot >= 75 ? '#34C759' : app.scoreSnapshot >= 50 ? '#FF9500' : '#86868B' }}>
                 {app.scoreSnapshot}%
               </span>
               {app.tierSnapshot && <p className="text-xs text-muted-foreground mt-0.5">Tier {app.tierSnapshot}</p>}
+              <AdvisoryEstimateLabel compact className="mt-2 justify-center" />
             </div>
           )}
         </div>
@@ -208,16 +222,18 @@ export default function ApplicationDetailPage() {
         <div className="flex items-center gap-4 flex-wrap">
           <div className="relative">
             <button onClick={() => setShowStatusMenu(!showStatusMenu)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
+              aria-haspopup="menu"
+              aria-expanded={showStatusMenu}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-apple px-3 py-2 text-sm font-medium"
               style={{ backgroundColor: cfg.bg, color: cfg.color }}>
               {cfg.label} <ChevronDown className="w-3.5 h-3.5" />
             </button>
             {showStatusMenu && (
-              <div className="absolute left-0 top-10 z-50 bg-card border border-card-border rounded-apple shadow-lg py-1 w-48">
+              <div className="absolute left-0 top-10 z-50 apple-card shadow-lg py-1 w-48">
                 {Object.entries(STATUS_CONFIG).map(([k, c]) => (
                   <button key={k} onClick={() => handleStatusChange(k)}
-                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-black/5 dark:hover:bg-white/5 ${k === app.status ? 'font-medium' : ''}`}>
-                    <span className="inline-block w-2 h-2 rounded-full mr-2" style={{ backgroundColor: c.color }} />
+                    className={`min-h-10 w-full px-3 py-2 text-left text-xs hover:bg-surface-container-low ${k === app.status ? 'font-medium' : ''}`}>
+                    <span className="inline-block w-2 h-2 rounded-apple mr-2" style={{ backgroundColor: c.color }} />
                     {c.label}
                   </button>
                 ))}
@@ -227,16 +243,16 @@ export default function ApplicationDetailPage() {
           <span className="text-xs text-muted-foreground">Saved {fmtDate(app.savedAt)}</span>
           {app.appliedAt && <span className="text-xs text-muted-foreground">Applied {fmtDate(app.appliedAt)}</span>}
           {overdueReminders.length > 0 && (
-            <span className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{overdueReminders.length} overdue</span>
+            <span className="text-xs text-danger flex items-center gap-1"><AlertCircle className="w-3 h-3" />{overdueReminders.length} overdue</span>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-card-border">
+      <div className="flex overflow-x-auto border-b border-card-border">
         {(['timeline','notes','reminders','documents','contacts','drafts'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
+            className={`min-h-11 shrink-0 border-b-2 px-4 py-2.5 text-sm font-medium capitalize transition-colors ${tab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>
             {t}
             {t === 'reminders' && overdueReminders.length > 0 ? ` (${overdueReminders.length})` : ''}
             {t === 'contacts' ? ` (${appContacts.length})` : ''}
@@ -246,7 +262,7 @@ export default function ApplicationDetailPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-card border border-card-border rounded-apple-lg shadow-sm overflow-hidden">
+      <div className="apple-card shadow-golden-sm overflow-hidden">
         {tab === 'timeline' && <TimelineTab events={timeline} />}
         {tab === 'notes' && <NotesTab notes={notes} appId={id} onRefresh={load} showAdd={showAddNote} setShowAdd={setShowAddNote} />}
         {tab === 'reminders' && <RemindersTab reminders={reminders} appId={id} onRefresh={load} showAdd={showAddReminder} setShowAdd={setShowAddReminder} />}
@@ -265,7 +281,7 @@ function TimelineTab({ events }: { events: any[] }) {
       <div className="relative pl-6 border-l-2 border-card-border space-y-4">
         {events.map(e => (
           <div key={e.id} className="relative">
-            <div className="absolute -left-[calc(1.5rem+5px)] w-2.5 h-2.5 rounded-full bg-primary border-2 border-card" />
+            <div className="absolute -left-[calc(1.5rem+5px)] w-2.5 h-2.5 rounded-apple bg-primary border-2 border-card" />
             <div>
               <p className="text-sm font-medium">{e.title}</p>
               {e.description && <p className="text-xs text-muted-foreground mt-0.5">{e.description}</p>}
@@ -340,7 +356,7 @@ function NotesTab({ notes, appId, onRefresh, showAdd, setShowAdd }: any) {
                   <button onClick={() => { setEditId(n.id); setEditContent(n.content); }} className="p-1 text-muted-foreground hover:text-primary">
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={async () => { await actionDeleteNote(n.id); onRefresh(); }} className="p-1 text-muted-foreground hover:text-red-500">
+                  <button onClick={async () => { await actionDeleteNote(n.id); onRefresh(); }} className="p-1 text-muted-foreground hover:text-danger">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -398,14 +414,14 @@ function RemindersTab({ reminders, appId, onRefresh, showAdd, setShowAdd }: any)
       {reminders.map((r: any) => {
         const overdue = !r.isCompleted && new Date(r.dueAt) < now;
         return (
-          <div key={r.id} className={`flex items-center gap-3 border rounded-apple p-3 ${overdue ? 'border-red-300 bg-red-50/50 dark:bg-red-900/10 dark:border-red-800' : 'border-card-border'} ${r.isCompleted ? 'opacity-50' : ''}`}>
+          <div key={r.id} className={`flex items-center gap-3 rounded-apple border p-3 ${overdue ? 'border-danger-border bg-danger-bg/50' : 'border-card-border'} ${r.isCompleted ? 'opacity-50' : ''}`}>
             <button onClick={async () => { if (!r.isCompleted) { await actionCompleteReminder(r.id); onRefresh(); } }}
-              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${r.isCompleted ? 'border-green-500 bg-green-500' : overdue ? 'border-red-400' : 'border-card-border hover:border-primary'}`}>
+              className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-sharp border-2 ${r.isCompleted ? 'border-success-border bg-success-bg' : overdue ? 'border-danger-border' : 'border-card-border hover:border-primary'}`}>
               {r.isCompleted && <CheckCircle2 className="w-3 h-3 text-white" />}
             </button>
             <div className="flex-1 min-w-0">
               <p className={`text-sm ${r.isCompleted ? 'line-through' : ''}`}>{r.title}</p>
-              <p className={`text-[10px] mt-0.5 ${overdue ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}>
+              <p className={`text-[10px] mt-0.5 ${overdue ? 'text-danger font-medium' : 'text-muted-foreground'}`}>
                 {overdue ? 'Overdue — ' : ''}{new Date(r.dueAt).toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
               </p>
             </div>
@@ -424,7 +440,7 @@ function RemindersTab({ reminders, appId, onRefresh, showAdd, setShowAdd }: any)
             >
               <CalendarDays className="w-3.5 h-3.5" />
             </button>
-            <button onClick={async () => { await actionDeleteReminder(r.id); onRefresh(); }} className="text-muted-foreground hover:text-red-500 p-1">
+            <button onClick={async () => { await actionDeleteReminder(r.id); onRefresh(); }} className="text-muted-foreground hover:text-danger p-1">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -455,7 +471,12 @@ function DocumentsTab({ docs, onAutoLink, hasScored }: { docs: any[]; onAutoLink
               <p className="text-sm font-medium">{typeLabel[d.documentType] || d.documentType}</p>
               <p className="text-[10px] text-muted-foreground">v{d.version} — {new Date(d.linkedAt).toLocaleDateString('en-IN')}</p>
             </div>
-            {d.atsScore && <span className="text-sm font-medium" style={{ color: d.atsScore >= 80 ? '#34C759' : '#FF9500' }}>ATS {d.atsScore}%</span>}
+            {d.atsScore && (
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <span className="text-sm font-medium" style={{ color: d.atsScore >= 80 ? '#34C759' : '#FF9500' }}>ATS {d.atsScore}%</span>
+                <AdvisoryEstimateLabel />
+              </div>
+            )}
           </div>
         ))
       )}
@@ -666,10 +687,10 @@ function DraftsTab({ applicationId, drafts, linkedContacts, onRefresh }: {
               <option key={row.link.id} value={row.contact?.id}>{row.contact?.fullName || 'Unknown'}</option>
             ))}
           </select>
-          <button onClick={() => handleGenerate('follow_up')} disabled={working} className="px-3 py-2 text-sm border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50">Follow-up</button>
-          <button onClick={() => handleGenerate('thank_you')} disabled={working} className="px-3 py-2 text-sm border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50">Thank-you</button>
-          <button onClick={() => handleGenerate('recruiter_reply')} disabled={working} className="px-3 py-2 text-sm border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50">Recruiter Reply</button>
-          <button onClick={() => handleGenerate('outreach')} disabled={working} className="px-3 py-2 text-sm border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50">Outreach</button>
+          <button onClick={() => handleGenerate('follow_up')} disabled={working} className="px-3 py-2 text-sm border border-card-border rounded-apple hover:bg-surface-container-low disabled:opacity-50">Follow-up</button>
+          <button onClick={() => handleGenerate('thank_you')} disabled={working} className="px-3 py-2 text-sm border border-card-border rounded-apple hover:bg-surface-container-low disabled:opacity-50">Thank-you</button>
+          <button onClick={() => handleGenerate('recruiter_reply')} disabled={working} className="px-3 py-2 text-sm border border-card-border rounded-apple hover:bg-surface-container-low disabled:opacity-50">Recruiter Reply</button>
+          <button onClick={() => handleGenerate('outreach')} disabled={working} className="px-3 py-2 text-sm border border-card-border rounded-apple hover:bg-surface-container-low disabled:opacity-50">Outreach</button>
         </div>
       </div>
 
@@ -688,7 +709,7 @@ function DraftsTab({ applicationId, drafts, linkedContacts, onRefresh }: {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigator.clipboard.writeText(draft.contentText)}
-                  className="px-2 py-1 text-xs border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5"
+                  className="px-2 py-1 text-xs border border-card-border rounded-apple hover:bg-surface-container-low"
                 >
                   Copy
                 </button>
@@ -698,7 +719,7 @@ function DraftsTab({ applicationId, drafts, linkedContacts, onRefresh }: {
                     if (res.success) alert(`Draft exported: ${(res as any).filePath}`);
                     else alert((res as any).error || 'Failed to export draft');
                   }}
-                  className="px-2 py-1 text-xs border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5"
+                  className="px-2 py-1 text-xs border border-card-border rounded-apple hover:bg-surface-container-low"
                 >
                   Export .txt
                 </button>
@@ -708,7 +729,7 @@ function DraftsTab({ applicationId, drafts, linkedContacts, onRefresh }: {
                     if (res.success) alert(`Draft exported: ${(res as any).filePath}`);
                     else alert((res as any).error || 'Failed to export draft');
                   }}
-                  className="px-2 py-1 text-xs border border-card-border rounded-apple hover:bg-black/5 dark:hover:bg-white/5"
+                  className="px-2 py-1 text-xs border border-card-border rounded-apple hover:bg-surface-container-low"
                 >
                   Export .md
                 </button>

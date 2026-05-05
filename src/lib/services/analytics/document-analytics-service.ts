@@ -3,6 +3,7 @@ import {
   documentAssets,
   applicationDocuments,
   applications,
+  masterProfiles,
   scoredJobs,
   normalizedJobs,
 } from '@/db/schema';
@@ -15,7 +16,9 @@ import {
   inArray,
   isNull,
   sql,
+  desc,
 } from 'drizzle-orm';
+import { shouldShowDocumentAsset } from '@/lib/services/documents/asset-filters';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -70,6 +73,29 @@ function atsBand(score: number): AtsBand {
 }
 
 const ALL_BANDS: AtsBand[] = ['0-49', '50-69', '70-84', '85-100'];
+
+function getCurrentMasterProfile(db: ReturnType<typeof getDb>) {
+  return db.select()
+    .from(masterProfiles)
+    .orderBy(desc(masterProfiles.updatedAt), desc(masterProfiles.id))
+    .limit(1)
+    .get();
+}
+
+function getVisibleDocumentAssets(db: ReturnType<typeof getDb>) {
+  const currentProfile = getCurrentMasterProfile(db);
+  return db.select({
+    asset: documentAssets,
+    portal: normalizedJobs.portal,
+    title: normalizedJobs.title,
+    company: normalizedJobs.company,
+  })
+    .from(documentAssets)
+    .leftJoin(scoredJobs, eq(documentAssets.scoredJobId, scoredJobs.id))
+    .leftJoin(normalizedJobs, eq(scoredJobs.normalizedJobId, normalizedJobs.id))
+    .all()
+    .filter((row) => shouldShowDocumentAsset(row.asset, currentProfile, row));
+}
 
 // ─── getAtsDistribution ───────────────────────────────────────────────────────
 
@@ -275,14 +301,10 @@ export function getHighAtsUnusedJobs(minAts: number = 80): HighAtsJob[] {
 
 export function getDocumentSummary(): DocumentSummary {
   const db = getDb();
+  const visibleAssets = getVisibleDocumentAssets(db);
 
   const countByType = (type: string): number => {
-    const row = db
-      .select({ cnt: sql<number>`count(*)` })
-      .from(documentAssets)
-      .where(eq(documentAssets.type, type))
-      .get();
-    return row?.cnt ?? 0;
+    return visibleAssets.filter((row) => row.asset.type === type).length;
   };
 
   const totalResumes = countByType('resume');
@@ -290,30 +312,31 @@ export function getDocumentSummary(): DocumentSummary {
   const totalOutreachNotes = countByType('outreach_note');
 
   // Average ATS score across resumes with a score
-  const avgRow = db
-    .select({ avg: sql<number | null>`avg(${documentAssets.atsScore})` })
-    .from(documentAssets)
-    .where(
-      and(
-        eq(documentAssets.type, 'resume'),
-        isNotNull(documentAssets.atsScore),
-      ),
-    )
-    .get();
-  const avgAtsScore =
-    avgRow?.avg !== null && avgRow?.avg !== undefined
-      ? Math.round(avgRow.avg)
-      : null;
+  const resumeAtsScores = visibleAssets
+    .map((row) => row.asset)
+    .filter((asset) => asset.type === 'resume' && asset.atsScore !== null)
+    .map((asset) => Number(asset.atsScore));
+  const avgAtsScore = resumeAtsScores.length
+    ? Math.round(resumeAtsScores.reduce((sum, score) => sum + score, 0) / resumeAtsScores.length)
+    : null;
 
   const highAtsUnusedCount = getHighAtsUnusedJobs(80).length;
 
   // Resume application rate: distinct assets linked / total assets
-  const linkedRow = db
-    .select({ cnt: sql<number>`count(distinct ${applicationDocuments.documentAssetId})` })
+  const visibleResumeIds = new Set(
+    visibleAssets
+      .map((row) => row.asset)
+      .filter((asset) => asset.type === 'resume')
+      .map((asset) => asset.id),
+  );
+  const linkedRows = db
+    .select({ documentAssetId: applicationDocuments.documentAssetId })
     .from(applicationDocuments)
     .where(eq(applicationDocuments.documentType, 'resume'))
-    .get();
-  const linkedResumes = linkedRow?.cnt ?? 0;
+    .all();
+  const linkedResumes = linkedRows
+    .map((row) => Number(row.documentAssetId))
+    .filter((id) => visibleResumeIds.has(id)).length;
   const resumeApplicationRate =
     totalResumes > 0 ? Math.round((linkedResumes / totalResumes) * 100) : 0;
 

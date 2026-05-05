@@ -1,0 +1,1594 @@
+{
+  "schema_version": "1.0.0",
+  "last_updated": "2026-04-24",
+  "market": "India",
+  "description": "India-focused role-family expansion packs for official-first job discovery. These packs are deliberately broader than the current runtime TypeScript subset so future source expansion can map user intent to titles, sectors, and fallback sources without editing code.",
+  "role_family_packs": [
+    {
+      "id": "engineering",
+      "label": "Engineering",
+      "cluster": "engineering",
+      "primary_titles": [
+        "Software Engineer",
+        "Software Developer",
+        "Frontend Engineer",
+        "Backend Engineer",
+        "Full Stack Engineer",
+        "Mobile Engineer",
+        "DevOps Engineer",
+        "Site Reliability Engineer",
+        "Platform Engineer",
+        "Cloud Engineer",
+        "QA Engineer",
+        "Security Engineer",
+        "Embedded Software Engineer",
+        "Solutions Engineer"
+      ],
+      "synonyms": [
+        "SDE",
+        "SWE",
+        "Developer",
+        "Programmer",
+        "Application Developer",
+        "Member of Technical Staff",
+        "MTS",
+        "Software Development Engineer",
+        "Software Development Engineer in Test",
+        "SDET",
+        "Production Engineer",
+        "Infrastructure Engineer",
+        "Systems Engineer"
+      ],
+      "adjacent_titles": [
+        "Technical Lead",
+        "Engineering Manager",
+        "Solutions Architect",
+        "Developer Advocate",
+        "Release Engineer",
+        "Build Engineer",
+        "Technical Consultant",
+        "Implementation Engineer",
+        "Support Engineer",
+        "Integration Engineer"
+      ],
+      "junior_senior_variants": [
+        "Trainee Software Engineer",
+        "Associate Software Engineer",
+        "Junior Software Engineer",
+        "Software Engineer I",
+        "Software Engineer II",
+        "Senior Software Engineer",
+        "Lead Software Engineer",
+        "Staff Software Engineer",
+        "Principal Software Engineer",
+        "Engineering Manager",
+        "Senior Engineering Manager",
+        "Director of Engineering"
+      ],
+      "sector_specific_variants": {
+        "it_services": [
+          "Java Developer",
+          ".NET Developer",
+          "Mainframe Developer",
+          "Salesforce Developer",
+          "ServiceNow Developer",
+          "SAP ABAP Developer"
+        ],
+        "product_saas": [
+          "React Engineer",
+          "Node.js Engineer",
+          "API Engineer",
+          "Microservices Engineer",
+          "Developer Platform Engineer"
+        ],
+        "mobile": [
+          "Android Engineer",
+          "iOS Engineer",
+          "Flutter Developer",
+          "React Native Developer"
+        ],
+        "cloud_infra": [
+          "AWS Engineer",
+          "Azure Engineer",
+          "GCP Engineer",
+          "Kubernetes Engineer",
+          "Observability Engineer"
+        ],
+        "security": [
+          "Application Security Engineer",
+          "Cloud Security Engineer",
+          "Security Operations Engineer",
+          "Penetration Tester"
+        ],
+        "hardware_embedded": [
+          "Embedded Engineer",
+          "Firmware Engineer",
+          "VLSI Engineer",
+          "FPGA Engineer",
+          "Automotive Software Engineer"
+        ]
+      },
+      "special_use_cases": [
+        "Expand SDE, SWE, and developer inputs into both product-company and IT-services titles.",
+        "Include support, implementation, and solutions roles for candidates with customer-facing engineering experience.",
+        "Prefer official ATS sources for product, SaaS, fintech, cloud, and developer-tool employers before broad portals.",
+        "For India-wide IT services searches, keep city hints broad and allow high-volume campus and lateral hiring pages."
+      ],
+      "keyword_hints": [
+        "java",
+        "python",
+        "javascript",
+        "typescript",
+        "react",
+        "node",
+        "spring boot",
+        "microservices",
+        "api",
+        "distributed systems",
+        "aws",
+        "azure",
+        "gcp",
+        "kubernetes",
+        "terraform",
+        "ci/cd",
+        "sql",
+        "system design",
+        "security",
+        "testing"
+      ]
+    },
+    {
+      "id": "product_program_strategy",
+      "label": "Product, Program, and Strategy",
+      "cluster": "product/program/strategy",
+      "primary_titles": [
+        "Product Manager",
+        "Associate Product Manager",
+        "Technical Product Manager",
+        "Product Owner",
+        "Program Manager",
+        "Technical Program Manager",
+        "Project Manager",
+        "Strategy Manager",
+        "Business Strategy Manager",
+        "Founder Office",
+        "Chief of Staff",
+        "Growth Product Manager"
+      ],
+      "synonyms": [
+        "PM",
+        "APM",
+        "TPM",
+        "Product Lead",
+        "Product Specialist",
+        "Product Consultant",
+        "Program Lead",
+        "Strategy and Operations",
+        "BizOps",
+        "Business Operations",
+        "Founder's Office",
+        "CEO's Office"
+      ],
+      "adjacent_titles": [
+        "Product Analyst",
+        "Business Analyst",
+        "Operations Program Manager",
+        "Customer Success Manager",
+        "Implementation Manager",
+        "Delivery Manager",
+        "Scrum Master",
+        "Agile Coach",
+        "Partnerships Manager",
+        "Go-To-Market Manager"
+      ],
+      "junior_senior_variants": [
+        "Product Intern",
+        "Product Trainee",
+        "Associate Product Manager",
+        "Product Manager I",
+        "Product Manager II",
+        "Senior Product Manager",
+        "Lead Product Manager",
+        "Group Product Manager",
+        "Principal Product Manager",
+        "Director of Product",
+        "Head of Product",
+        "VP Product"
+      ],
+      "sector_specific_variants": {
+        "ai_product": [
+          "AI Product Manager",
+          "GenAI Product Manager",
+          "LLM Product Manager",
+          "ML Product Manager",
+          "Applied AI Product Manager"
+        ],
+        "fintech": [
+          "Payments Product Manager",
+          "Lending Product Manager",
+          "Risk Product Manager",
+          "Wealth Product Manager",
+          "UPI Product Manager"
+        ],
+        "consumer": [
+          "Consumer Product Manager",
+          "Marketplace Product Manager",
+          "Growth Product Manager",
+          "Retention Product Manager"
+        ],
+        "enterprise_saas": [
+          "B2B Product Manager",
+          "Platform Product Manager",
+          "API Product Manager",
+          "Integrations Product Manager"
+        ],
+        "consulting": [
+          "Strategy Consultant",
+          "Management Consultant",
+          "Program Consultant",
+          "Transformation Manager"
+        ]
+      },
+      "special_use_cases": [
+        "Treat product, program, strategy, and founder office inputs as overlapping in Indian startups and scaleups.",
+        "Use iimjobs, Cutshort, Instahyre, and official company pages as later fallbacks for product and strategy searches.",
+        "For AI product profiles, add LLM, GenAI, ML, prompt, evaluation, and data-product terms.",
+        "For non-technical PMs, include growth, customer, operations, and business analyst adjacent paths."
+      ],
+      "keyword_hints": [
+        "roadmap",
+        "prd",
+        "user research",
+        "experimentation",
+        "metrics",
+        "analytics",
+        "stakeholder management",
+        "agile",
+        "scrum",
+        "go-to-market",
+        "pricing",
+        "growth",
+        "retention",
+        "ai",
+        "llm",
+        "genai"
+      ]
+    },
+    {
+      "id": "design_creative",
+      "label": "Design and Creative",
+      "cluster": "design/creative",
+      "primary_titles": [
+        "Product Designer",
+        "UX Designer",
+        "UI Designer",
+        "Visual Designer",
+        "Interaction Designer",
+        "UX Researcher",
+        "Graphic Designer",
+        "Creative Designer",
+        "Motion Designer",
+        "Content Designer",
+        "Brand Designer",
+        "Design Strategist"
+      ],
+      "synonyms": [
+        "UI/UX Designer",
+        "User Experience Designer",
+        "User Interface Designer",
+        "Experience Designer",
+        "Service Designer",
+        "Researcher",
+        "Creative Associate",
+        "Art Director",
+        "Design Consultant",
+        "Web Designer"
+      ],
+      "adjacent_titles": [
+        "Product Manager",
+        "Product Analyst",
+        "Content Strategist",
+        "Marketing Designer",
+        "Design Program Manager",
+        "Frontend Developer",
+        "UX Writer",
+        "Instructional Designer",
+        "Game UI Designer",
+        "Design Operations"
+      ],
+      "junior_senior_variants": [
+        "Design Intern",
+        "Junior Designer",
+        "Associate Product Designer",
+        "Product Designer I",
+        "Product Designer II",
+        "Senior Product Designer",
+        "Lead Designer",
+        "Principal Designer",
+        "Design Manager",
+        "Design Director",
+        "Head of Design"
+      ],
+      "sector_specific_variants": {
+        "product_saas": [
+          "SaaS Product Designer",
+          "Enterprise UX Designer",
+          "Design Systems Designer",
+          "Developer Tools Designer"
+        ],
+        "consumer": [
+          "Consumer App Designer",
+          "Marketplace Designer",
+          "Growth Designer",
+          "Mobile UX Designer"
+        ],
+        "media_advertising": [
+          "Creative Strategist",
+          "Campaign Designer",
+          "Social Media Designer",
+          "Video Editor",
+          "Copywriter"
+        ],
+        "gaming": [
+          "Game UI Artist",
+          "Game UX Designer",
+          "2D Artist",
+          "3D Artist",
+          "Level Designer"
+        ],
+        "education": [
+          "Learning Experience Designer",
+          "Instructional Designer",
+          "Curriculum Visual Designer"
+        ]
+      },
+      "special_use_cases": [
+        "Expand UI/UX into product design, research, and visual roles because employers mix these terms heavily.",
+        "Keep creative roles linked to marketing and content sources when the user has campaign or brand experience.",
+        "Use portfolio-sensitive filters and avoid over-matching pure frontend engineering unless the resume shows code.",
+        "For India startup searches, include design systems and mobile app variants."
+      ],
+      "keyword_hints": [
+        "figma",
+        "design systems",
+        "wireframes",
+        "prototyping",
+        "user research",
+        "usability testing",
+        "interaction design",
+        "visual design",
+        "accessibility",
+        "branding",
+        "motion",
+        "content strategy",
+        "portfolio"
+      ]
+    },
+    {
+      "id": "data_ai_analytics",
+      "label": "Data, AI, and Analytics",
+      "cluster": "data/AI/analytics",
+      "primary_titles": [
+        "Data Analyst",
+        "Business Analyst",
+        "Product Analyst",
+        "Data Scientist",
+        "Machine Learning Engineer",
+        "AI Engineer",
+        "Analytics Engineer",
+        "BI Analyst",
+        "Data Engineer",
+        "MLOps Engineer",
+        "Applied Scientist",
+        "Decision Scientist"
+      ],
+      "synonyms": [
+        "ML Engineer",
+        "AI/ML Engineer",
+        "Analytics Consultant",
+        "MIS Analyst",
+        "Reporting Analyst",
+        "Business Intelligence Analyst",
+        "Data Science Associate",
+        "Quantitative Analyst",
+        "Research Scientist",
+        "Data Platform Engineer"
+      ],
+      "adjacent_titles": [
+        "Software Engineer",
+        "Product Manager",
+        "Risk Analyst",
+        "Marketing Analyst",
+        "Operations Analyst",
+        "Revenue Analyst",
+        "Growth Analyst",
+        "Data Steward",
+        "Data Quality Analyst",
+        "Prompt Engineer"
+      ],
+      "junior_senior_variants": [
+        "Data Intern",
+        "Data Science Intern",
+        "Junior Data Analyst",
+        "Associate Data Scientist",
+        "Data Analyst I",
+        "Data Scientist II",
+        "Senior Data Scientist",
+        "Lead Data Scientist",
+        "Principal Data Scientist",
+        "Analytics Manager",
+        "Data Science Manager",
+        "Head of Analytics"
+      ],
+      "sector_specific_variants": {
+        "ai_genai": [
+          "GenAI Engineer",
+          "LLM Engineer",
+          "AI Research Engineer",
+          "Prompt Engineer",
+          "AI Evaluation Engineer",
+          "RAG Engineer"
+        ],
+        "bfsi": [
+          "Credit Risk Analyst",
+          "Fraud Analyst",
+          "Quant Analyst",
+          "Risk Data Scientist",
+          "AML Analytics Analyst"
+        ],
+        "ecommerce_consumer": [
+          "Growth Analyst",
+          "Pricing Analyst",
+          "Supply Analytics Analyst",
+          "Demand Forecasting Analyst"
+        ],
+        "healthcare": [
+          "Clinical Data Analyst",
+          "Healthcare Data Scientist",
+          "Bioinformatics Analyst",
+          "Medical Data Annotator"
+        ],
+        "operations": [
+          "Supply Chain Analyst",
+          "Workforce Analyst",
+          "Operations Research Analyst",
+          "Planning Analyst"
+        ]
+      },
+      "special_use_cases": [
+        "Expand analyst inputs into business, product, operations, finance, and marketing analyst variants.",
+        "Use AI-specific variants only when user input includes ML, GenAI, LLM, NLP, CV, or model-building signals.",
+        "For freshers, include MIS, reporting, SQL analyst, and data operations paths.",
+        "For India BFSI and fintech searches, include risk, fraud, credit, and compliance analytics."
+      ],
+      "keyword_hints": [
+        "sql",
+        "python",
+        "r",
+        "excel",
+        "power bi",
+        "tableau",
+        "looker",
+        "dbt",
+        "spark",
+        "airflow",
+        "machine learning",
+        "statistics",
+        "forecasting",
+        "experimentation",
+        "nlp",
+        "computer vision",
+        "llm",
+        "rag"
+      ]
+    },
+    {
+      "id": "sales_growth_marketing_customer",
+      "label": "Sales, Growth, Marketing, and Customer",
+      "cluster": "sales/growth/marketing/customer",
+      "primary_titles": [
+        "Sales Executive",
+        "Business Development Executive",
+        "Business Development Manager",
+        "Account Executive",
+        "Account Manager",
+        "Customer Success Manager",
+        "Marketing Manager",
+        "Growth Manager",
+        "Digital Marketing Manager",
+        "Performance Marketing Manager",
+        "Brand Manager",
+        "Customer Support Specialist",
+        "Inside Sales Representative"
+      ],
+      "synonyms": [
+        "BD",
+        "BDM",
+        "BDE",
+        "SDR",
+        "BDR",
+        "Sales Development Representative",
+        "Relationship Manager",
+        "Client Success",
+        "Customer Experience",
+        "CX",
+        "Demand Generation",
+        "Growth Marketing",
+        "Field Sales",
+        "Telesales"
+      ],
+      "adjacent_titles": [
+        "Partnerships Manager",
+        "Revenue Operations Analyst",
+        "Sales Operations Analyst",
+        "Product Marketing Manager",
+        "Community Manager",
+        "Content Marketer",
+        "CRM Manager",
+        "Implementation Manager",
+        "Customer Onboarding Specialist",
+        "Pre-Sales Consultant"
+      ],
+      "junior_senior_variants": [
+        "Sales Intern",
+        "Marketing Intern",
+        "Sales Trainee",
+        "Management Trainee Sales",
+        "Junior Account Executive",
+        "Associate Customer Success Manager",
+        "Senior Sales Executive",
+        "Senior Customer Success Manager",
+        "Regional Sales Manager",
+        "Area Sales Manager",
+        "Key Account Manager",
+        "Head of Sales",
+        "VP Sales",
+        "Head of Growth"
+      ],
+      "sector_specific_variants": {
+        "saas": [
+          "SaaS Account Executive",
+          "Enterprise Account Executive",
+          "Customer Success Associate",
+          "Solutions Consultant",
+          "Renewals Manager"
+        ],
+        "bfsi": [
+          "Relationship Manager",
+          "Branch Sales Manager",
+          "Insurance Sales Manager",
+          "Wealth Relationship Manager",
+          "Loan Sales Officer"
+        ],
+        "consumer_d2c": [
+          "Ecommerce Marketing Manager",
+          "Retention Manager",
+          "CRM Marketing Manager",
+          "Influencer Marketing Manager"
+        ],
+        "field_sales": [
+          "Territory Sales Manager",
+          "Area Business Manager",
+          "Channel Sales Manager",
+          "Distributor Sales Executive"
+        ],
+        "support_bpo": [
+          "Customer Support Executive",
+          "Customer Care Executive",
+          "Technical Support Associate",
+          "Voice Process Associate"
+        ]
+      },
+      "special_use_cases": [
+        "Map sales and customer roles to Apna, WorkIndia, Naukri, LinkedIn, and official BFSI/company pages as appropriate.",
+        "Use field-sales city and territory terms for non-metro searches.",
+        "Include customer success and implementation roles for SaaS users with post-sales experience.",
+        "Separate performance marketing from brand and content roles when resume keywords support it."
+      ],
+      "keyword_hints": [
+        "revenue",
+        "pipeline",
+        "crm",
+        "salesforce",
+        "hubspot",
+        "lead generation",
+        "cold calling",
+        "enterprise sales",
+        "renewals",
+        "churn",
+        "seo",
+        "sem",
+        "google ads",
+        "meta ads",
+        "campaigns",
+        "content",
+        "brand",
+        "customer support"
+      ]
+    },
+    {
+      "id": "hr_talent_people",
+      "label": "HR, Talent, and People",
+      "cluster": "HR/talent/people",
+      "primary_titles": [
+        "HR Executive",
+        "HR Generalist",
+        "Human Resources Manager",
+        "Talent Acquisition Specialist",
+        "Recruiter",
+        "Technical Recruiter",
+        "People Operations Specialist",
+        "HR Business Partner",
+        "Learning and Development Manager",
+        "Compensation and Benefits Analyst",
+        "Payroll Specialist",
+        "Employee Relations Specialist"
+      ],
+      "synonyms": [
+        "TA",
+        "HRBP",
+        "People Partner",
+        "People Ops",
+        "Talent Partner",
+        "Recruitment Consultant",
+        "Sourcer",
+        "Campus Recruiter",
+        "HR Operations",
+        "L&D",
+        "OD",
+        "Organization Development"
+      ],
+      "adjacent_titles": [
+        "Operations Manager",
+        "Admin Executive",
+        "Office Manager",
+        "Training Manager",
+        "Onboarding Specialist",
+        "Culture Manager",
+        "HRIS Analyst",
+        "Workforce Analyst",
+        "Compliance Officer",
+        "People Analytics Analyst"
+      ],
+      "junior_senior_variants": [
+        "HR Intern",
+        "Talent Acquisition Intern",
+        "HR Trainee",
+        "Junior HR Executive",
+        "Associate Recruiter",
+        "Senior HR Executive",
+        "Senior Recruiter",
+        "Lead Recruiter",
+        "Talent Acquisition Manager",
+        "Senior HR Business Partner",
+        "Head of People",
+        "CHRO"
+      ],
+      "sector_specific_variants": {
+        "technology": [
+          "Technical Recruiter",
+          "Engineering Recruiter",
+          "Product Recruiter",
+          "Startup Talent Partner"
+        ],
+        "bpo_operations": [
+          "Bulk Hiring Recruiter",
+          "Volume Hiring Specialist",
+          "Training Coordinator",
+          "Workforce Management Analyst"
+        ],
+        "manufacturing": [
+          "Plant HR Manager",
+          "Industrial Relations Officer",
+          "Factory HR Executive",
+          "Compliance HR Executive"
+        ],
+        "education_healthcare": [
+          "Faculty Recruiter",
+          "Healthcare Recruiter",
+          "Clinical Recruiter",
+          "Academic HR Coordinator"
+        ]
+      },
+      "special_use_cases": [
+        "Expand recruiter searches into TA, sourcing, campus, and technical recruiting variants.",
+        "For HR operations profiles, include payroll, compliance, HRIS, and employee lifecycle terms.",
+        "For manufacturing and logistics companies, include industrial relations and plant HR titles.",
+        "Use official company pages before portals when searching for people roles at large employers."
+      ],
+      "keyword_hints": [
+        "recruiting",
+        "sourcing",
+        "linkedin recruiter",
+        "ats",
+        "onboarding",
+        "payroll",
+        "hris",
+        "workday",
+        "successfactors",
+        "employee engagement",
+        "performance management",
+        "l&d",
+        "compliance",
+        "industrial relations",
+        "campus hiring"
+      ]
+    },
+    {
+      "id": "finance_legal_compliance_risk",
+      "label": "Finance, Legal, Compliance, and Risk",
+      "cluster": "finance/legal/compliance/risk",
+      "primary_titles": [
+        "Finance Analyst",
+        "Financial Analyst",
+        "Accounts Executive",
+        "Accountant",
+        "Chartered Accountant",
+        "FP&A Analyst",
+        "Risk Analyst",
+        "Compliance Officer",
+        "Legal Associate",
+        "Company Secretary",
+        "Audit Associate",
+        "Tax Analyst",
+        "Credit Analyst",
+        "Treasury Analyst"
+      ],
+      "synonyms": [
+        "CA",
+        "CS",
+        "CMA",
+        "CPA",
+        "Finance Executive",
+        "Accounts Payable",
+        "Accounts Receivable",
+        "AP",
+        "AR",
+        "GL Accountant",
+        "Internal Auditor",
+        "Legal Counsel",
+        "GRC",
+        "AML",
+        "KYC"
+      ],
+      "adjacent_titles": [
+        "Business Analyst",
+        "Operations Analyst",
+        "Data Analyst",
+        "Procurement Analyst",
+        "Contracts Manager",
+        "Risk Product Manager",
+        "Fraud Analyst",
+        "Actuarial Analyst",
+        "Investment Analyst",
+        "Relationship Manager"
+      ],
+      "junior_senior_variants": [
+        "Finance Intern",
+        "Article Assistant",
+        "Accounts Trainee",
+        "Junior Accountant",
+        "Associate Finance Analyst",
+        "Senior Accountant",
+        "Senior Finance Analyst",
+        "Finance Manager",
+        "Senior Manager Finance",
+        "Controller",
+        "Head of Finance",
+        "General Counsel",
+        "Chief Compliance Officer",
+        "CFO"
+      ],
+      "sector_specific_variants": {
+        "bfsi": [
+          "Credit Risk Analyst",
+          "Market Risk Analyst",
+          "AML Analyst",
+          "KYC Analyst",
+          "Banking Operations Analyst",
+          "Regulatory Reporting Analyst"
+        ],
+        "fintech": [
+          "Payments Compliance Analyst",
+          "Fraud Risk Analyst",
+          "Lending Operations Analyst",
+          "Risk Policy Manager"
+        ],
+        "corporate": [
+          "FP&A Manager",
+          "Controllership Analyst",
+          "Tax Manager",
+          "Internal Controls Analyst"
+        ],
+        "legal": [
+          "Corporate Lawyer",
+          "Legal Counsel",
+          "Contracts Specialist",
+          "IP Counsel",
+          "Data Privacy Counsel"
+        ],
+        "consulting": [
+          "Risk Consultant",
+          "Audit Consultant",
+          "Forensic Analyst",
+          "Transaction Advisory Analyst"
+        ]
+      },
+      "special_use_cases": [
+        "For CA/CS users, expand into audit, tax, controllership, compliance, and corporate finance.",
+        "For BFSI and fintech, prioritize risk, AML, KYC, credit, fraud, and regulatory variants.",
+        "Use iimjobs, Naukri, LinkedIn, and official bank/company career pages as key fallback sources.",
+        "Keep legal and compliance tied to official employer pages because job-board titles are often generic."
+      ],
+      "keyword_hints": [
+        "financial modeling",
+        "excel",
+        "tally",
+        "sap fico",
+        "gst",
+        "income tax",
+        "audit",
+        "ifrs",
+        "ind as",
+        "fp&a",
+        "budgeting",
+        "variance analysis",
+        "risk",
+        "aml",
+        "kyc",
+        "compliance",
+        "contracts",
+        "legal research"
+      ]
+    },
+    {
+      "id": "operations_supply_logistics_admin",
+      "label": "Operations, Supply, Logistics, and Admin",
+      "cluster": "operations/supply/logistics/admin",
+      "primary_titles": [
+        "Operations Executive",
+        "Operations Manager",
+        "Business Operations Manager",
+        "Supply Chain Analyst",
+        "Supply Chain Manager",
+        "Logistics Coordinator",
+        "Warehouse Manager",
+        "Procurement Executive",
+        "Admin Executive",
+        "Office Administrator",
+        "Facilities Manager",
+        "Vendor Manager",
+        "Inventory Analyst"
+      ],
+      "synonyms": [
+        "Ops",
+        "BizOps",
+        "Admin",
+        "SCM",
+        "Procurement",
+        "Purchase Executive",
+        "Logistics Executive",
+        "Dispatch Executive",
+        "Fleet Manager",
+        "Back Office Executive",
+        "MIS Executive",
+        "Process Associate"
+      ],
+      "adjacent_titles": [
+        "Program Manager",
+        "Project Coordinator",
+        "Business Analyst",
+        "Customer Success Manager",
+        "HR Operations",
+        "Finance Operations",
+        "Sales Operations",
+        "Revenue Operations",
+        "Quality Analyst",
+        "Process Improvement Analyst"
+      ],
+      "junior_senior_variants": [
+        "Operations Intern",
+        "Operations Trainee",
+        "Junior Operations Executive",
+        "Operations Associate",
+        "Senior Operations Executive",
+        "Team Lead Operations",
+        "Assistant Manager Operations",
+        "Operations Manager",
+        "Senior Operations Manager",
+        "General Manager Operations",
+        "Head of Operations",
+        "COO"
+      ],
+      "sector_specific_variants": {
+        "logistics": [
+          "Last Mile Operations Manager",
+          "Hub Manager",
+          "Fleet Coordinator",
+          "Route Planner",
+          "Transport Manager"
+        ],
+        "manufacturing": [
+          "Production Planner",
+          "Plant Operations Manager",
+          "Quality Engineer",
+          "Maintenance Planner",
+          "EHS Officer"
+        ],
+        "retail_qcommerce": [
+          "Dark Store Manager",
+          "Category Operations Manager",
+          "Fulfillment Manager",
+          "Inventory Controller"
+        ],
+        "admin": [
+          "Executive Assistant",
+          "Office Manager",
+          "Facilities Coordinator",
+          "Travel Desk Executive"
+        ],
+        "shared_services": [
+          "Process Associate",
+          "Back Office Associate",
+          "Service Delivery Manager",
+          "Transition Manager"
+        ]
+      },
+      "special_use_cases": [
+        "Enable Apna and WorkIndia only when field, warehouse, retail, delivery, or admin signals are present.",
+        "For ecommerce and logistics, include city, hub, warehouse, and last-mile terms.",
+        "For office/admin users, include executive assistant, facilities, travel desk, and vendor management.",
+        "For process roles, include BPO, shared services, MIS, and quality variants."
+      ],
+      "keyword_hints": [
+        "operations",
+        "supply chain",
+        "logistics",
+        "warehouse",
+        "inventory",
+        "procurement",
+        "vendor management",
+        "excel",
+        "mis",
+        "erp",
+        "sap",
+        "process improvement",
+        "six sigma",
+        "sla",
+        "fleet",
+        "dispatch",
+        "admin"
+      ]
+    },
+    {
+      "id": "education",
+      "label": "Education",
+      "cluster": "education",
+      "primary_titles": [
+        "Teacher",
+        "Faculty",
+        "Lecturer",
+        "Professor",
+        "Academic Coordinator",
+        "Curriculum Developer",
+        "Instructional Designer",
+        "Trainer",
+        "Tutor",
+        "Subject Matter Expert",
+        "Learning Designer",
+        "School Counselor",
+        "Academic Operations Manager"
+      ],
+      "synonyms": [
+        "Educator",
+        "Academic",
+        "SME",
+        "Content Faculty",
+        "Online Tutor",
+        "Teaching Assistant",
+        "Assistant Professor",
+        "PGT",
+        "TGT",
+        "PRT",
+        "EdTech Trainer",
+        "Learning Experience Designer"
+      ],
+      "adjacent_titles": [
+        "Content Writer",
+        "Product Manager",
+        "Customer Success Manager",
+        "Student Success Manager",
+        "Admissions Counselor",
+        "Program Manager",
+        "Education Consultant",
+        "Training Manager",
+        "Assessment Specialist",
+        "Academic Sales Counselor"
+      ],
+      "junior_senior_variants": [
+        "Teaching Intern",
+        "Teaching Assistant",
+        "Junior Teacher",
+        "Associate Faculty",
+        "Faculty",
+        "Senior Faculty",
+        "Lead Faculty",
+        "Academic Lead",
+        "Head of Department",
+        "Principal",
+        "Dean",
+        "Director Academics"
+      ],
+      "sector_specific_variants": {
+        "schools": [
+          "PRT Teacher",
+          "TGT Teacher",
+          "PGT Teacher",
+          "Kindergarten Teacher",
+          "Special Educator"
+        ],
+        "higher_education": [
+          "Assistant Professor",
+          "Associate Professor",
+          "Research Fellow",
+          "Lab Instructor",
+          "Program Coordinator"
+        ],
+        "test_prep": [
+          "JEE Faculty",
+          "NEET Faculty",
+          "CAT Faculty",
+          "UPSC Faculty",
+          "Spoken English Trainer"
+        ],
+        "edtech": [
+          "Curriculum Designer",
+          "Learning Experience Designer",
+          "Academic Content Developer",
+          "Student Success Manager"
+        ],
+        "corporate_training": [
+          "Corporate Trainer",
+          "L&D Specialist",
+          "Technical Trainer",
+          "Soft Skills Trainer"
+        ]
+      },
+      "special_use_cases": [
+        "Map PRT, TGT, PGT, faculty, and lecturer inputs into school, college, edtech, and coaching variants.",
+        "For edtech searches, add product, curriculum, content, student success, and academic operations paths.",
+        "For government education roles, pair with government/public/research pack and official recruitment pages.",
+        "Use subject-specific terms from resume or user input as high-weight keywords."
+      ],
+      "keyword_hints": [
+        "teaching",
+        "curriculum",
+        "lesson plan",
+        "assessment",
+        "pedagogy",
+        "classroom",
+        "edtech",
+        "learning design",
+        "instructional design",
+        "content development",
+        "student success",
+        "cbse",
+        "icse",
+        "neet",
+        "jee",
+        "upsc"
+      ]
+    },
+    {
+      "id": "healthcare",
+      "label": "Healthcare",
+      "cluster": "healthcare",
+      "primary_titles": [
+        "Doctor",
+        "Medical Officer",
+        "Resident Doctor",
+        "Consultant Doctor",
+        "Nurse",
+        "Clinical Specialist",
+        "Pharmacist",
+        "Lab Technician",
+        "Physiotherapist",
+        "Healthcare Operations Manager",
+        "Medical Advisor",
+        "Clinical Research Associate",
+        "Hospital Administrator"
+      ],
+      "synonyms": [
+        "Physician",
+        "Surgeon",
+        "Consultant",
+        "RMO",
+        "CMO",
+        "Staff Nurse",
+        "GNM",
+        "ANM",
+        "Medical Representative",
+        "MR",
+        "CRA",
+        "Clinical Coordinator",
+        "Diagnostics Technician"
+      ],
+      "adjacent_titles": [
+        "Healthcare Data Analyst",
+        "Medical Coder",
+        "Medical Writer",
+        "Patient Care Coordinator",
+        "Care Manager",
+        "Insurance Claims Analyst",
+        "Healthcare Sales Manager",
+        "Hospital Operations Executive",
+        "Bioinformatics Analyst",
+        "Regulatory Affairs Associate"
+      ],
+      "junior_senior_variants": [
+        "Medical Intern",
+        "Nursing Trainee",
+        "Junior Resident",
+        "Resident Doctor",
+        "Senior Resident",
+        "Associate Consultant",
+        "Consultant",
+        "Senior Consultant",
+        "Head Nurse",
+        "Clinical Lead",
+        "Medical Director",
+        "Hospital Director"
+      ],
+      "sector_specific_variants": {
+        "hospitals": [
+          "Resident Medical Officer",
+          "Emergency Medical Officer",
+          "ICU Nurse",
+          "OT Nurse",
+          "Hospital Administrator"
+        ],
+        "diagnostics": [
+          "Pathologist",
+          "Radiologist",
+          "Lab Technician",
+          "Phlebotomist",
+          "Quality Manager Diagnostics"
+        ],
+        "pharma": [
+          "Clinical Research Associate",
+          "Pharmacovigilance Associate",
+          "Regulatory Affairs Associate",
+          "Medical Science Liaison"
+        ],
+        "healthtech": [
+          "Clinical Product Specialist",
+          "Healthcare Product Manager",
+          "Medical Data Annotator",
+          "Patient Success Manager"
+        ],
+        "insurance": [
+          "Medical Claims Analyst",
+          "Health Underwriter",
+          "Provider Network Manager",
+          "TPA Operations Executive"
+        ]
+      },
+      "special_use_cases": [
+        "Use official hospital, diagnostics, pharma, and healthtech career pages before generic portals.",
+        "For licensed roles, preserve specialty, qualification, and registration terms from user input.",
+        "For healthcare operations users, include admin, insurance, patient success, and hospital operations roles.",
+        "For nurses and technicians, enable location-heavy and onsite-first source matching."
+      ],
+      "keyword_hints": [
+        "clinical",
+        "patient care",
+        "mbbs",
+        "md",
+        "ms",
+        "bds",
+        "bsc nursing",
+        "gnm",
+        "pharmacy",
+        "diagnostics",
+        "hospital",
+        "emergency",
+        "icu",
+        "clinical research",
+        "pharmacovigilance",
+        "regulatory",
+        "healthtech"
+      ]
+    },
+    {
+      "id": "government_public_research",
+      "label": "Government, Public Sector, and Research",
+      "cluster": "government/public/research",
+      "primary_titles": [
+        "Research Associate",
+        "Research Assistant",
+        "Project Assistant",
+        "Project Associate",
+        "Scientist",
+        "Junior Research Fellow",
+        "Senior Research Fellow",
+        "Government Officer",
+        "Public Policy Associate",
+        "Policy Analyst",
+        "Program Officer",
+        "Public Sector Consultant",
+        "Development Sector Associate"
+      ],
+      "synonyms": [
+        "JRF",
+        "SRF",
+        "RA",
+        "PA",
+        "Govt",
+        "Sarkari",
+        "PSU",
+        "Public Sector",
+        "Research Fellow",
+        "Policy Fellow",
+        "Consultant Government",
+        "Mission Manager",
+        "Scheme Coordinator"
+      ],
+      "adjacent_titles": [
+        "Data Analyst",
+        "Monitoring and Evaluation Specialist",
+        "Program Manager",
+        "Project Manager",
+        "Field Coordinator",
+        "Grant Manager",
+        "Knowledge Manager",
+        "Academic Coordinator",
+        "Legal Researcher",
+        "Communications Associate"
+      ],
+      "junior_senior_variants": [
+        "Research Intern",
+        "Policy Intern",
+        "Project Trainee",
+        "Junior Research Fellow",
+        "Research Associate",
+        "Senior Research Fellow",
+        "Senior Research Associate",
+        "Scientist B",
+        "Scientist C",
+        "Program Manager",
+        "Senior Consultant",
+        "Director Research"
+      ],
+      "sector_specific_variants": {
+        "government_recruitment": [
+          "Officer Trainee",
+          "Assistant Manager PSU",
+          "Junior Engineer",
+          "Assistant Section Officer",
+          "Administrative Officer"
+        ],
+        "research_institutes": [
+          "Project Scientist",
+          "Lab Assistant",
+          "Research Fellow",
+          "Technical Assistant",
+          "Field Investigator"
+        ],
+        "development_sector": [
+          "Program Officer",
+          "M&E Specialist",
+          "Social Impact Consultant",
+          "Livelihood Coordinator",
+          "District Coordinator"
+        ],
+        "policy": [
+          "Public Policy Associate",
+          "Policy Analyst",
+          "Governance Consultant",
+          "Regulatory Affairs Analyst"
+        ],
+        "public_health": [
+          "Public Health Associate",
+          "Epidemiology Analyst",
+          "Health Program Manager",
+          "Field Research Coordinator"
+        ]
+      },
+      "special_use_cases": [
+        "Prefer official ministry, PSU, university, institute, and recruitment-board pages over portal copies.",
+        "Track deadlines, notification PDFs, exam stages, eligibility, and application-fee fields distinctly from private jobs.",
+        "For research roles, preserve discipline keywords and funding/project names.",
+        "Use broad portals only as discovery, then canonicalize to the official notification or employer page."
+      ],
+      "keyword_hints": [
+        "government",
+        "psu",
+        "sarkari",
+        "notification",
+        "recruitment",
+        "exam",
+        "eligibility",
+        "research",
+        "jrf",
+        "srf",
+        "project",
+        "grant",
+        "policy",
+        "public health",
+        "monitoring and evaluation",
+        "field work",
+        "deadline"
+      ]
+    },
+    {
+      "id": "freshers_trainees_internships",
+      "label": "Freshers, Trainees, and Internships",
+      "cluster": "freshers/trainees/internships",
+      "primary_titles": [
+        "Intern",
+        "Internship",
+        "Graduate Trainee",
+        "Management Trainee",
+        "Engineer Trainee",
+        "Software Engineer Intern",
+        "Data Analyst Intern",
+        "Product Intern",
+        "Marketing Intern",
+        "HR Intern",
+        "Finance Intern",
+        "Campus Hire",
+        "Fresher"
+      ],
+      "synonyms": [
+        "Entry Level",
+        "Entry-Level",
+        "Graduate",
+        "Trainee",
+        "Apprentice",
+        "Campus Recruitment",
+        "New Grad",
+        "New Graduate",
+        "0-1 Years",
+        "0 Years",
+        "Walk-in",
+        "Off Campus",
+        "Pre-placement Offer",
+        "PPO"
+      ],
+      "adjacent_titles": [
+        "Associate",
+        "Junior Analyst",
+        "Junior Developer",
+        "Junior Designer",
+        "Operations Associate",
+        "Process Associate",
+        "Customer Support Associate",
+        "Teaching Assistant",
+        "Research Intern",
+        "Business Analyst Trainee"
+      ],
+      "junior_senior_variants": [
+        "Summer Intern",
+        "Winter Intern",
+        "Industrial Trainee",
+        "Apprentice Trainee",
+        "Graduate Engineer Trainee",
+        "Associate Trainee",
+        "Junior Associate",
+        "Associate",
+        "Analyst",
+        "Engineer I",
+        "Executive Trainee",
+        "Management Trainee"
+      ],
+      "sector_specific_variants": {
+        "engineering": [
+          "Software Engineer Intern",
+          "Graduate Engineer Trainee",
+          "QA Trainee",
+          "Developer Trainee",
+          "Support Engineer Trainee"
+        ],
+        "data": [
+          "Data Science Intern",
+          "Data Analyst Intern",
+          "BI Intern",
+          "Research Intern",
+          "AI Intern"
+        ],
+        "business": [
+          "Management Trainee",
+          "Business Analyst Intern",
+          "Founder Office Intern",
+          "Operations Intern",
+          "Sales Trainee"
+        ],
+        "education_research": [
+          "Teaching Assistant",
+          "Research Assistant",
+          "Project Intern",
+          "Academic Intern"
+        ],
+        "government_psu": [
+          "Apprentice",
+          "Graduate Apprentice",
+          "Technician Apprentice",
+          "Officer Trainee"
+        ]
+      },
+      "special_use_cases": [
+        "Enable Internshala and Freshersworld only when fresher, intern, trainee, campus, or 0-1 year signals are present.",
+        "For private-sector freshers, keep official campus and early-career pages high in priority.",
+        "For apprenticeships and PSU trainees, pair with government/public/research sources.",
+        "Avoid polluting experienced searches with internship variants unless the user explicitly asks."
+      ],
+      "keyword_hints": [
+        "fresher",
+        "internship",
+        "trainee",
+        "campus",
+        "graduate",
+        "entry level",
+        "0-1 years",
+        "apprentice",
+        "off campus",
+        "walk-in",
+        "stipend",
+        "ppo",
+        "2024 batch",
+        "2025 batch",
+        "2026 batch"
+      ]
+    },
+    {
+      "id": "specialized_sectors",
+      "label": "Specialized Sectors",
+      "cluster": "specialized sectors",
+      "primary_titles": [
+        "Cybersecurity Analyst",
+        "Semiconductor Engineer",
+        "Automotive Engineer",
+        "Mechanical Engineer",
+        "Electrical Engineer",
+        "Civil Engineer",
+        "Manufacturing Engineer",
+        "Energy Analyst",
+        "Climate Analyst",
+        "Game Developer",
+        "Media Producer",
+        "Hotel Manager",
+        "Real Estate Manager",
+        "Agriculture Officer"
+      ],
+      "synonyms": [
+        "Domain Specialist",
+        "Industry Specialist",
+        "Functional Consultant",
+        "Subject Matter Expert",
+        "SME",
+        "Core Engineering",
+        "Plant Engineer",
+        "Process Engineer",
+        "Game Programmer",
+        "Renewable Energy",
+        "ESG",
+        "Sustainability",
+        "Hospitality",
+        "AgriTech"
+      ],
+      "adjacent_titles": [
+        "Product Manager",
+        "Project Manager",
+        "Operations Manager",
+        "Business Analyst",
+        "Data Analyst",
+        "Sales Engineer",
+        "Pre-Sales Consultant",
+        "Implementation Consultant",
+        "Research Associate",
+        "Quality Engineer",
+        "Compliance Specialist"
+      ],
+      "junior_senior_variants": [
+        "Domain Intern",
+        "Graduate Engineer Trainee",
+        "Junior Engineer",
+        "Associate Consultant",
+        "Engineer",
+        "Senior Engineer",
+        "Lead Engineer",
+        "Principal Engineer",
+        "Domain Lead",
+        "Practice Lead",
+        "Sector Head",
+        "Director"
+      ],
+      "sector_specific_variants": {
+        "cybersecurity": [
+          "SOC Analyst",
+          "GRC Analyst",
+          "Security Consultant",
+          "Threat Analyst",
+          "IAM Engineer"
+        ],
+        "semiconductor_electronics": [
+          "VLSI Design Engineer",
+          "DFT Engineer",
+          "Physical Design Engineer",
+          "RTL Engineer",
+          "PCB Design Engineer"
+        ],
+        "automotive_ev": [
+          "ADAS Engineer",
+          "Battery Engineer",
+          "EV Powertrain Engineer",
+          "Automotive Embedded Engineer",
+          "Vehicle Integration Engineer"
+        ],
+        "manufacturing_core": [
+          "Production Engineer",
+          "Quality Engineer",
+          "Maintenance Engineer",
+          "Process Engineer",
+          "EHS Officer"
+        ],
+        "energy_climate": [
+          "Renewable Energy Analyst",
+          "Solar Project Engineer",
+          "ESG Analyst",
+          "Sustainability Consultant",
+          "Carbon Analyst"
+        ],
+        "media_gaming": [
+          "Game Developer",
+          "Unity Developer",
+          "Unreal Developer",
+          "Video Producer",
+          "Content Producer"
+        ],
+        "hospitality_real_estate": [
+          "Hotel Operations Manager",
+          "Front Office Manager",
+          "Property Manager",
+          "Facilities Manager",
+          "Leasing Manager"
+        ],
+        "agriculture_food": [
+          "Agronomist",
+          "Food Technologist",
+          "Quality Assurance Food",
+          "Agri Sales Officer",
+          "Dairy Technologist"
+        ]
+      },
+      "special_use_cases": [
+        "Use this pack as an overlay when the user mentions a domain that does not fit one generic function.",
+        "Preserve domain nouns such as EV, semiconductor, solar, hotel, pharma, gaming, aviation, or agri as high-weight filters.",
+        "Prefer official company, PSU, institute, and domain-board discovery before generic portal scraping.",
+        "Combine with engineering, operations, finance, sales, or data packs based on the user's function."
+      ],
+      "keyword_hints": [
+        "cybersecurity",
+        "soc",
+        "vlsi",
+        "semiconductor",
+        "ev",
+        "automotive",
+        "manufacturing",
+        "quality",
+        "plant",
+        "solar",
+        "renewable",
+        "esg",
+        "sustainability",
+        "gaming",
+        "media",
+        "hospitality",
+        "real estate",
+        "agriculture",
+        "aviation",
+        "pharma"
+      ]
+    }
+  ]
+}

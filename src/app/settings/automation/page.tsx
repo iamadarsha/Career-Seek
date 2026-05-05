@@ -30,7 +30,7 @@ export default function AutomationSettingsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Automation & Notifications</h1>
+        <h1 className="text-2xl font-semibold">Automation & Notifications</h1>
         <p className="text-muted-foreground">Configure scheduled tasks and notification preferences.</p>
       </div>
 
@@ -57,7 +57,7 @@ export default function AutomationSettingsPage() {
                       checked={p.inAppEnabled}
                       onChange={(e) => handleToggle(p.id, 'inAppEnabled', e.target.checked)}
                     />
-                    <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <div className="peer h-6 w-11 rounded-apple bg-muted peer-focus:outline-none peer-checked:bg-primary after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-sharp after:border after:border-card-border after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
                   </label>
                 </div>
               ))}
@@ -73,9 +73,21 @@ export default function AutomationSettingsPage() {
               <p className="text-sm text-muted-foreground">Mute notifications during these hours.</p>
               {prefs.length > 0 && (
                 <div className="flex items-center gap-4">
-                  <input type="time" value={prefs[0].quietHoursStart} className="px-3 py-2 bg-background border border-card-border rounded-apple text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" readOnly />
+                  <input
+                    type="time"
+                    aria-label="Quiet hours start time"
+                    value={prefs[0].quietHoursStart}
+                    className="px-3 py-2 bg-background border border-card-border rounded-apple text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    readOnly
+                  />
                   <span>to</span>
-                  <input type="time" value={prefs[0].quietHoursEnd} className="px-3 py-2 bg-background border border-card-border rounded-apple text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" readOnly />
+                  <input
+                    type="time"
+                    aria-label="Quiet hours end time"
+                    value={prefs[0].quietHoursEnd}
+                    className="px-3 py-2 bg-background border border-card-border rounded-apple text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    readOnly
+                  />
                 </div>
               )}
             </div>
@@ -98,7 +110,7 @@ export default function AutomationSettingsPage() {
                   <div key={log.id} className="p-4 space-y-1">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium flex items-center gap-1.5">
-                        {log.status === 'success' ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
+                        {log.status === 'success' ? <CheckCircle2 className="w-4 h-4 text-success" /> : <XCircle className="w-4 h-4 text-danger" />}
                         {log.taskType.replace('_', ' ')}
                       </p>
                       <span className="text-[10px] text-muted-foreground">
@@ -106,7 +118,7 @@ export default function AutomationSettingsPage() {
                       </span>
                     </div>
                     {log.resultSummary && <p className="text-xs text-muted-foreground">{log.resultSummary}</p>}
-                    {log.errorDetail && <p className="text-xs text-red-500 mt-1">{log.errorDetail}</p>}
+                    {log.errorDetail && <p className="text-xs text-danger mt-1">{log.errorDetail}</p>}
                   </div>
                 ))}
               </div>

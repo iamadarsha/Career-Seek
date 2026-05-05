@@ -9,7 +9,10 @@ try {
   const envLocal = fs.readFileSync('.env.local', 'utf8');
   envLocal.split('\n').forEach(line => {
     const [key, value] = line.split('=');
-    if (key && value) process.env[key.trim()] = value.trim();
+    const envKey = key?.trim();
+    if (envKey && value && !process.env[envKey]) {
+      process.env[envKey] = value.trim();
+    }
   });
 } catch (e) {}
 
@@ -29,6 +32,7 @@ function bootstrap() {
     'output',
     'output/resumes',
     'output/cover-letters',
+    'output/outreach',
     'uploads'
   ];
 
@@ -43,7 +47,11 @@ function bootstrap() {
   // Create an initial empty config if it doesn't exist
   const configPath = path.join(baseDir, 'config', 'settings.json');
   if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, JSON.stringify({ isConfigured: false }, null, 2));
+    fs.writeFileSync(configPath, JSON.stringify({
+      isConfigured: false,
+      onboardingStage: 'welcome',
+      onboardingVersion: 2,
+    }, null, 2));
     console.log(`Created initial config at: ${configPath}`);
   }
 

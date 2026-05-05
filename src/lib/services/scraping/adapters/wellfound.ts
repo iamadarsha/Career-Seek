@@ -30,25 +30,37 @@ export class WellfoundAdapter extends BasePortalAdapter {
         throw new Error('Failed to load Wellfound jobs page');
       }
 
+      const gate = await this.detectAccessGate(page);
+      if (gate) throw new Error(gate === 'blocked' ? 'blocked: Wellfound appears to be blocking automated access' : 'auth_gate: Wellfound requires sign-in');
+
       await this.randomDelay(3000, 5000); // Allow time for SPA load
 
       // The exact selectors on wellfound change frequently; these are illustrative for Phase C
-      const jobCards = await page.$$('div[data-test="StartupResult"]');
+      const { elements: jobCards } = await this.selectorChain(page, [
+        'div[data-test="StartupResult"]',
+        '[data-test*="Startup"]',
+        '[data-test*="Job"]',
+        'section:has(a[href*="/jobs/"])',
+      ]);
       onProgress?.(`Found ${jobCards.length} companies/job blocks on Wellfound`);
 
       for (let i = 0; i < Math.min(jobCards.length, 10); i++) {
         try {
           const card = jobCards[i];
-          const companyEl = await card.$('h2');
+          const companyEl = await this.firstSelector(card, ['h2', 'h3', 'a[href*="/company/"]']);
           const company = companyEl ? await companyEl.innerText() : 'Unknown Company';
           
           // A company card might have multiple jobs
-          const listings = await card.$$('div[data-test="JobListing"]');
+          const { elements: listings } = await this.selectorChain(card, [
+            'div[data-test="JobListing"]',
+            '[data-test*="JobListing"]',
+            'a[href*="/jobs/"]',
+          ]);
           
           for (const listing of listings) {
-            const titleEl = await listing.$('a[data-test="JobListing-title"]');
-            const locationEl = await listing.$('span[data-test="JobListing-location"]');
-            const compensationEl = await listing.$('span[data-test="JobListing-compensation"]');
+            const titleEl = await this.firstSelector(listing, ['a[data-test="JobListing-title"]', 'a[href*="/jobs/"]', 'h3', 'h4']);
+            const locationEl = await this.firstSelector(listing, ['span[data-test="JobListing-location"]', '[class*="location"]']);
+            const compensationEl = await this.firstSelector(listing, ['span[data-test="JobListing-compensation"]', '[class*="compensation"]']);
             
             const title = titleEl ? await titleEl.innerText() : 'Unknown Title';
             const location = locationEl ? await locationEl.innerText() : undefined;
@@ -70,10 +82,23 @@ export class WellfoundAdapter extends BasePortalAdapter {
         }
       }
 
+      if (jobs.length === 0) {
+        jobs.push(...await this.extractJobLinksFromPage(page, query, {
+          hrefIncludes: ['/jobs/', '/job/'],
+          defaultLocation: query.locations?.[0] || 'India',
+        }));
+      }
+
+      if (jobs.length === 0) {
+        throw new Error(jobCards.length === 0
+          ? 'selector_not_found: no Wellfound job/company blocks or job links matched fallback chain'
+          : 'parse_error: Wellfound blocks were found but no usable jobs could be parsed');
+      }
+
       return this.formatResult(jobs);
 
     } catch (e: any) {
-      return this.formatResult(jobs, e.message);
+      return this.formatFailureResult(jobs, e, page);
     } finally {
       await page.close();
     }

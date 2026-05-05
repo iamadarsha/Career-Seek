@@ -1,11 +1,27 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
-import { JobMonitor } from "@/components/jobs/JobMonitor";
+import { AppChrome } from "@/components/AppChrome";
+import { getBaseAppDir } from "@/lib/local-paths";
+
+const sans = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const display = Inter({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "JobHunt India",
-  description: "Local-first AI-powered job search app",
+  title: "Career Seek",
+  description: "A local-first job search workspace for discovering, evaluating, and tracking roles.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -13,22 +29,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const baseAppDir = getBaseAppDir();
+  const homeDir = process.env.HOME;
+  const dataDirLabel = homeDir && baseAppDir.startsWith(homeDir)
+    ? baseAppDir.replace(homeDir, "~")
+    : baseAppDir;
+
   return (
-    <html lang="en">
-      <body className="flex h-screen overflow-hidden antialiased">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-background">
-          <div className="glass sticky top-0 z-10 border-b border-sidebar-border px-8 py-4">
-            <header className="flex items-center justify-between">
-              <h1 className="text-xl font-semibold tracking-tight">JobHunt India</h1>
-              <div className="text-sm text-muted-foreground">Local First</div>
-            </header>
-          </div>
-          <div className="p-8">
-            {children}
-          </div>
-        </main>
-        <JobMonitor profileId={1} />
+    <html lang="en" className={`${sans.variable} ${display.variable}`}>
+      <body className="min-h-screen antialiased bg-background text-foreground font-sans">
+        <AppChrome dataDirLabel={dataDirLabel}>{children}</AppChrome>
       </body>
     </html>
   );

@@ -1,0 +1,168 @@
+services:
+  career-seek:
+    image: node:22-bookworm
+    working_dir: /workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      meilisearch:
+        condition: service_started
+      qdrant:
+        condition: service_started
+      minio:
+        condition: service_started
+      browserless:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    ports:
+      - "${CAREER_SEEK_PORT:-3000}:${CAREER_SEEK_PORT:-3000}"
+    environment:
+      CAREER_SEEK_DEV: "1"
+      CAREER_SEEK_HOST: "0.0.0.0"
+      CAREER_SEEK_PORT: "${CAREER_SEEK_PORT:-3000}"
+      CAREER_SEEK_SKIP_BUILD: "1"
+      CAREER_SEEK_SKIP_BROWSER_INSTALL: "${CAREER_SEEK_SKIP_BROWSER_INSTALL:-0}"
+      JOBHUNT_DATA_DIR: "/career-seek-data"
+      NEXT_TELEMETRY_DISABLED: "1"
+      PLAYWRIGHT_BROWSERS_PATH: "/ms-playwright"
+      DATABASE_URL: "postgresql://career_seek:career_seek@postgres:5432/career_seek"
+      REDIS_URL: "redis://redis:6379"
+      BULL_BOARD_PORT: "${BULL_BOARD_PORT:-3002}"
+      MEILISEARCH_URL: "http://meilisearch:7700"
+      QDRANT_URL: "http://qdrant:6333"
+      MINIO_ENDPOINT: "minio"
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: "${MINIO_ROOT_USER:-careerseek}"
+      MINIO_SECRET_KEY: "${MINIO_ROOT_PASSWORD:-careerseek123}"
+      BROWSERLESS_URL: "http://browserless:3000"
+      BROWSERLESS_WS_ENDPOINT: "ws://browserless:3000"
+      MAILPIT_SMTP_HOST: "mailpit"
+      MAILPIT_SMTP_PORT: "1025"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GOOGLE_GENERATIVE_AI_API_KEY: "${GOOGLE_GENERATIVE_AI_API_KEY:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      GROQ_API_KEY: "${GROQ_API_KEY:-}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      OPENAI_COMPATIBLE_API_KEY: "${OPENAI_COMPATIBLE_API_KEY:-}"
+      OPENAI_COMPATIBLE_BASE_URL: "${OPENAI_COMPATIBLE_BASE_URL:-}"
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://ollama:11434/v1}"
+    volumes:
+      - .:/workspace
+      - career_seek_node_modules:/workspace/node_modules
+      - career_seek_next:/workspace/.next
+      - career_seek_data:/career-seek-data
+      - career_seek_playwright:/ms-playwright
+    command:
+      - sh
+      - -lc
+      - |
+        if [ -f package-lock.json ]; then npm ci; else npm install; fi
+        node -e "process.exit(process.env.CAREER_SEEK_SKIP_BROWSER_INSTALL === '1' ? 0 : 1)" || npx playwright install --with-deps chromium || npx playwright install chromium || true
+        npm run launch:dev -- --skip-build
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: career_seek
+      POSTGRES_USER: career_seek
+      POSTGRES_PASSWORD: career_seek
+    ports:
+      - "5432:5432"
+    volumes:
+      - career_seek_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U career_seek -d career_seek"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - career_seek_redis:/data
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.13
+    restart: unless-stopped
+    environment:
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_ENV: "development"
+      MEILI_MASTER_KEY: "${MEILI_MASTER_KEY:-career-seek-dev-key}"
+    ports:
+      - "7700:7700"
+    volumes:
+      - career_seek_meili:/meili_data
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.6
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - career_seek_qdrant:/qdrant/storage
+
+  minio:
+    image: minio/minio:RELEASE.2025-01-20T14-49-07Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER:-careerseek}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD:-careerseek123}"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - career_seek_minio:/data
+
+  browserless:
+    image: browserless/chrome:latest
+    restart: unless-stopped
+    environment:
+      TOKEN: "${BROWSERLESS_TOKEN:-career-seek-local}"
+      CONCURRENT: "4"
+      TIMEOUT: "120000"
+      CORS: "true"
+      EXIT_ON_HEALTH_FAILURE: "false"
+      PREBOOT_CHROME: "true"
+    ports:
+      - "3001:3000"
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    volumes:
+      - career_seek_mailpit:/data
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - career_seek_ollama:/root/.ollama
+
+volumes:
+  career_seek_node_modules:
+  career_seek_next:
+  career_seek_data:
+  career_seek_playwright:
+  career_seek_postgres:
+  career_seek_redis:
+  career_seek_meili:
+  career_seek_qdrant:
+  career_seek_minio:
+  career_seek_mailpit:
+  career_seek_ollama:

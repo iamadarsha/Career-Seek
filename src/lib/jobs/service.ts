@@ -1,7 +1,30 @@
 import { db } from '@/db';
-import { platformJobs, platformJobLogs } from '@/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { platformJobs, platformJobLogs, scans } from '@/db/schema';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import type { JobType, JobStatus, EnqueueJobInput, PlatformJob } from './types';
+
+export const STALLED_JOB_TIMEOUT_MS = 10 * 60 * 1000;
+const INTERRUPTED_JOB_STATUSES = ['running', 'processing'] as const;
+
+function interruptedJobError(job: PlatformJob, timeoutMs: number) {
+  return JSON.stringify({
+    code: 'process_interrupted',
+    message: `Job was left in ${job.status} without a heartbeat for more than ${Math.round(timeoutMs / 60000)} minutes.`,
+    jobId: job.id,
+    jobType: job.jobType,
+    lastUpdatedAt: job.updatedAt ? new Date(job.updatedAt).toISOString() : null,
+    recoveredAt: new Date().toISOString(),
+  });
+}
+
+function scanInterruptedError(job: PlatformJob, timeoutMs: number) {
+  return JSON.stringify({
+    code: 'process_interrupted',
+    message: `Interrupted platform job ${job.id}; worker recovered it after more than ${Math.round(timeoutMs / 60000)} minutes without heartbeat.`,
+    platformJobId: job.id,
+    jobType: job.jobType,
+  });
+}
 
 export class JobService {
   /**
@@ -56,7 +79,7 @@ export class JobService {
       updatedAt: new Date(),
     };
 
-    if (status === 'running') {
+    if (status === 'running' || status === 'processing') {
       updateData.attempts = sql`attempts + 1`;
       updateData.startedAt = new Date();
     }
@@ -67,6 +90,8 @@ export class JobService {
 
     if (error) {
       updateData.error = error;
+    } else if (status === 'succeeded') {
+      updateData.error = null;
     }
 
     if (result) {
@@ -120,11 +145,11 @@ export class JobService {
       .from(platformJobs)
       .where(
         and(
-          eq(platformJobs.status, 'queued'),
+          inArray(platformJobs.status, ['queued', 'retrying']),
           sql`(${platformJobs.nextRetryAt} IS NULL OR ${platformJobs.nextRetryAt} <= ${Date.now()})`
         )
       )
-      .orderBy(platformJobs.priority, platformJobs.id)
+      .orderBy(sql`${platformJobs.priority} DESC`, platformJobs.id)
       .limit(limit);
   }
 
@@ -141,52 +166,97 @@ export class JobService {
       .where(eq(platformJobs.id, jobId));
   }
 
+  static async heartbeat(jobId: number, message = 'Worker heartbeat'): Promise<void> {
+    await db
+      .update(platformJobs)
+      .set({ updatedAt: new Date() })
+      .where(eq(platformJobs.id, jobId));
+    await this.log(jobId, 'info', message);
+  }
+
   /**
    * Find jobs that have been running for too long and mark them as failed/retrying.
    */
-  static async cleanupStalledJobs(timeoutMs = 60 * 60 * 1000): Promise<number> {
+  static async cleanupStalledJobs(timeoutMs = STALLED_JOB_TIMEOUT_MS): Promise<number> {
     const stalledAt = new Date(Date.now() - timeoutMs);
     
-    // Find running jobs that haven't been updated recently
+    // Find active jobs that haven't heartbeated recently.
     const stalledJobs = await db
       .select()
       .from(platformJobs)
       .where(
         and(
-          eq(platformJobs.status, 'running'),
-          sql`${platformJobs.updatedAt} < ${stalledAt.getTime()}`
+          inArray(platformJobs.status, [...INTERRUPTED_JOB_STATUSES]),
+          sql`(${platformJobs.updatedAt} IS NULL OR ${platformJobs.updatedAt} < ${stalledAt.getTime()})`
         )
       );
 
     for (const job of stalledJobs) {
-      const attempts = (job.attempts || 0);
-      const maxAttempts = job.maxAttempts || 3;
-      
-      if (attempts < maxAttempts) {
-        await this.updateStatus(job.id, 'retrying', `Job stalled (last update: ${job.updatedAt ? new Date(job.updatedAt).toISOString() : 'unknown'})`);
-      } else {
-        await this.updateStatus(job.id, 'failed', 'Job stalled and exceeded max attempts');
+      const error = interruptedJobError(job, timeoutMs);
+      if (job.jobType === 'scan_jobs') {
+        await this.markInterruptedScans(job, timeoutMs);
       }
+      await this.updateStatus(job.id, 'failed', error);
+      await this.log(job.id, 'error', 'Recovered stalled job after missing heartbeat.', {
+        code: 'process_interrupted',
+        previousStatus: job.status,
+        timeoutMs,
+      });
     }
 
     return stalledJobs.length;
   }
 
   /**
-   * Mark all 'running' jobs as 'retrying' on worker startup.
-   * This handles jobs that were interrupted by a crash/termination.
+   * Mark old active jobs as failed on worker startup.
+   * This handles jobs that were interrupted by a crash/termination and did not
+   * heartbeat again within the timeout window.
    */
-  static async recoverInterruptedJobs(): Promise<number> {
-    const runningJobs = await db
+  static async recoverInterruptedJobs(timeoutMs = STALLED_JOB_TIMEOUT_MS): Promise<number> {
+    return this.cleanupStalledJobs(timeoutMs);
+  }
+
+  private static async markInterruptedScans(job: PlatformJob, timeoutMs: number): Promise<void> {
+    try {
+      const payload = JSON.parse(job.payload || '{}');
+      if (!payload.searchProfileId) return;
+
+      db.update(scans)
+        .set({
+          status: 'failed',
+          error: scanInterruptedError(job, timeoutMs),
+          finishedAt: new Date(),
+        })
+        .where(and(
+          eq(scans.searchProfileId, payload.searchProfileId),
+          inArray(scans.status, ['queued', 'preparing', 'scraping', 'normalizing', 'deduplicating'])
+        ))
+        .run();
+    } catch {
+      // Keep recovery best-effort; the platform job record remains canonical.
+    }
+  }
+
+  /**
+   * Legacy helper kept for manual admin use when the operator wants to retry
+   * every active job after a controlled worker restart.
+   */
+  static async requeueActiveJobsAfterControlledRestart(): Promise<number> {
+    const activeJobs = await db
       .select()
       .from(platformJobs)
-      .where(eq(platformJobs.status, 'running'));
+      .where(inArray(platformJobs.status, [...INTERRUPTED_JOB_STATUSES]));
 
-    for (const job of runningJobs) {
-      await this.updateStatus(job.id, 'retrying', 'Job interrupted by worker restart');
-      await this.log(job.id, 'warn', 'Detected interrupted job during worker startup; marking for retry.');
+    for (const job of activeJobs) {
+      await this.updateStatus(job.id, 'retrying', JSON.stringify({
+        code: 'process_interrupted',
+        message: 'Operator requeued active job after controlled worker restart.',
+        jobId: job.id,
+        recoveredAt: new Date().toISOString(),
+      }));
+      await this.log(job.id, 'warn', 'Operator requeued active job after controlled worker restart.');
     }
 
-    return runningJobs.length;
+    return activeJobs.length;
   }
 }

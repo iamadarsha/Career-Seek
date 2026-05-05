@@ -1,47 +1,68 @@
 /**
- * Embedding & Indexing Service — Phase F
- * 
- * Uses Gemini text-embedding-004 (768-dim) with local caching.
- * Stores embeddings in SQLite as JSON float arrays for local-first operation.
+ * Embedding & Indexing Service - Phase F
+ *
+ * Uses deterministic local embeddings so the Coach index works without a cloud
+ * AI key and stays stable across provider changes.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getDb } from '../../../db';
 import { documentChunks, indexRuns } from '../../../db/schema';
-import { eq, and } from 'drizzle-orm';
-import { getAppConfig } from '../../config';
+import { desc, eq, and } from 'drizzle-orm';
 import { RawChunk, generateChunks } from './chunker';
 import { resolveContext } from '../../platform/identity';
+import { createDefaultLocalResumeEmbeddingProvider, DEFAULT_LOCAL_RESUME_EMBEDDING_DIMENSIONS } from '../resume/embeddings';
 
-const EMBEDDING_MODEL = 'text-embedding-004';
-const BATCH_SIZE = 20; // Gemini supports batch embedding
+const LOCAL_EMBEDDING_PROVIDER = createDefaultLocalResumeEmbeddingProvider();
+const EMBEDDING_PROVIDER = LOCAL_EMBEDDING_PROVIDER.mode;
+const EMBEDDING_MODEL = LOCAL_EMBEDDING_PROVIDER.id;
+const EMBEDDING_DIMENSIONS = LOCAL_EMBEDDING_PROVIDER.dimensions || DEFAULT_LOCAL_RESUME_EMBEDDING_DIMENSIONS;
+const PROFILE_SOURCE_TYPES = new Set(['master_profile', 'resume_text', 'search_preferences', 'application_history']);
 
 // ── Core embedding function ────────────────────────────────────────────────
 
-async function embedTexts(texts: string[], apiKey: string): Promise<number[][]> {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: EMBEDDING_MODEL });
-
-  const results: number[][] = [];
-
-  // Process in batches to respect API limits
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    const batch = texts.slice(i, i + BATCH_SIZE);
-    
-    // Embed each text individually (Gemini embedContent API)
-    for (const text of batch) {
-      try {
-        const result = await model.embedContent(text);
-        results.push(result.embedding.values);
-      } catch (error: any) {
-        console.error(`Embedding failed for chunk: ${error.message}`);
-        // Push zero vector as fallback
-        results.push(new Array(768).fill(0));
-      }
-    }
+function parseEmbedding(raw: string | null | undefined): number[] {
+  try {
+    const parsed = JSON.parse(raw || '[]');
+    return Array.isArray(parsed) ? parsed.filter((n) => typeof n === 'number') : [];
+  } catch {
+    return [];
   }
+}
 
-  return results;
+function parseMetadata(raw: string | null | undefined): Record<string, any> {
+  try {
+    const parsed = JSON.parse(raw || '{}');
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function buildEmbeddingMetadata(metadata: Record<string, any> = {}) {
+  return {
+    ...metadata,
+    embeddingProvider: EMBEDDING_PROVIDER,
+    embeddingModel: EMBEDDING_MODEL,
+    embeddingDimensions: EMBEDDING_DIMENSIONS,
+    embeddingGeneratedAt: new Date().toISOString(),
+  };
+}
+
+function hasUsableEmbedding(raw: string | null | undefined): boolean {
+  const embedding = parseEmbedding(raw);
+  return embedding.length === EMBEDDING_DIMENSIONS && embedding.some((value) => value !== 0);
+}
+
+export async function embedCoachTexts(texts: string[]): Promise<Array<number[] | null>> {
+  try {
+    const embeddings = await LOCAL_EMBEDDING_PROVIDER.embed(texts);
+    return embeddings.map((embedding) =>
+      embedding.vector.length === EMBEDDING_DIMENSIONS ? embedding.vector : null
+    );
+  } catch (error: any) {
+    console.error(`Local embedding failed: ${error.message}`);
+    return texts.map(() => null);
+  }
 }
 
 // ── Indexing pipeline ──────────────────────────────────────────────────────
@@ -53,6 +74,35 @@ export interface IndexOptions {
   forceReindex?: boolean;
 }
 
+function isChunkInIndexScope(chunk: { sourceType: string; scoredJobId: number | null }, options: IndexOptions): boolean {
+  if (PROFILE_SOURCE_TYPES.has(chunk.sourceType) || chunk.scoredJobId === null) {
+    return options.includeProfile !== false;
+  }
+  if (options.scoredJobId) {
+    return chunk.scoredJobId === options.scoredJobId;
+  }
+  return Boolean(options.includeAllJobs);
+}
+
+function pruneStaleChunks(rawChunks: RawChunk[], options: IndexOptions, profileId: number): number {
+  if (!options.forceReindex) return 0;
+
+  const db = getDb();
+  const currentIds = new Set(rawChunks.map((chunk) => chunk.chunkId));
+  const existing = db.select()
+    .from(documentChunks)
+    .where(eq(documentChunks.profileId, profileId))
+    .all();
+
+  let pruned = 0;
+  for (const chunk of existing) {
+    if (!isChunkInIndexScope(chunk, options) || currentIds.has(chunk.chunkId)) continue;
+    db.delete(documentChunks).where(eq(documentChunks.id, chunk.id)).run();
+    pruned++;
+  }
+  return pruned;
+}
+
 /**
  * Indexes documents into the vector store.
  * Creates chunks, generates embeddings, and persists everything in SQLite.
@@ -62,11 +112,6 @@ export async function indexDocuments(options: IndexOptions): Promise<{
   chunksSkipped: number;
   error?: string;
 }> {
-  const config = getAppConfig();
-  if (!config.geminiApiKey) {
-    return { chunksCreated: 0, chunksSkipped: 0, error: 'No Gemini API key configured' };
-  }
-
   const db = getDb();
   const { profileId } = resolveContext();
 
@@ -82,6 +127,7 @@ export async function indexDocuments(options: IndexOptions): Promise<{
   try {
     // Generate chunks
     const rawChunks = generateChunks(options);
+    pruneStaleChunks(rawChunks, options, profileId);
     let created = 0;
     let skipped = 0;
 
@@ -97,17 +143,9 @@ export async function indexDocuments(options: IndexOptions): Promise<{
         ))
         .get();
 
-      if (existing && !options.forceReindex) {
+      if (existing && !options.forceReindex && hasUsableEmbedding(existing.embedding)) {
         skipped++;
         continue;
-      }
-
-      // If force reindex, delete existing
-      if (existing && options.forceReindex) {
-        db.delete(documentChunks).where(and(
-          eq(documentChunks.chunkId, chunk.chunkId),
-          eq(documentChunks.profileId, profileId)
-        )).run();
       }
 
       chunksToProcess.push(chunk);
@@ -123,14 +161,21 @@ export async function indexDocuments(options: IndexOptions): Promise<{
 
     // Generate embeddings for all new chunks
     const texts = chunksToProcess.map(c => c.content);
-    const embeddings = await embedTexts(texts, config.geminiApiKey);
+    const embeddings = await embedCoachTexts(texts);
 
     // Persist chunks with embeddings
+    let failed = 0;
+
     for (let i = 0; i < chunksToProcess.length; i++) {
       const chunk = chunksToProcess[i];
       const embedding = embeddings[i];
 
-      db.insert(documentChunks).values({
+      if (!embedding || embedding.length === 0) {
+        failed++;
+        continue;
+      }
+
+      const row = {
         profileId,
         chunkId: chunk.chunkId,
         sourceType: chunk.sourceType,
@@ -138,21 +183,56 @@ export async function indexDocuments(options: IndexOptions): Promise<{
         scoredJobId: chunk.scoredJobId,
         section: chunk.section,
         content: chunk.content,
-        metadata: JSON.stringify(chunk.metadata),
+        metadata: JSON.stringify(buildEmbeddingMetadata(chunk.metadata)),
         embedding: JSON.stringify(embedding),
         tokenCount: Math.ceil(chunk.content.split(/\s+/).length * 1.3),
         indexedAt: new Date(),
-      }).run();
+      };
+
+      const existing = db.select()
+        .from(documentChunks)
+        .where(and(
+          eq(documentChunks.chunkId, chunk.chunkId),
+          eq(documentChunks.profileId, profileId)
+        ))
+        .get();
+
+      if (existing) {
+        db.update(documentChunks)
+          .set(row)
+          .where(eq(documentChunks.id, existing.id))
+          .run();
+      } else {
+        db.insert(documentChunks).values(row).run();
+      }
       created++;
+    }
+
+    if (created === 0 && failed > 0) {
+      const message = `${failed} chunks could not be embedded with the local embedding model`;
+      db.update(indexRuns)
+        .set({ status: 'failed', chunksCreated: 0, error: message, finishedAt: new Date() })
+        .where(eq(indexRuns.id, runResult.id))
+        .run();
+      return { chunksCreated: 0, chunksSkipped: skipped, error: message };
     }
 
     // Update index run
     db.update(indexRuns)
-      .set({ status: 'complete', chunksCreated: created, finishedAt: new Date() })
+      .set({
+        status: 'complete',
+        chunksCreated: created,
+        error: failed > 0 ? `${failed} chunks could not be embedded with the local embedding model` : null,
+        finishedAt: new Date(),
+      })
       .where(eq(indexRuns.id, runResult.id))
       .run();
 
-    return { chunksCreated: created, chunksSkipped: skipped };
+    return {
+      chunksCreated: created,
+      chunksSkipped: skipped,
+      error: failed > 0 ? `${failed} chunks could not be embedded with the local embedding model` : undefined,
+    };
   } catch (error: any) {
     db.update(indexRuns)
       .set({ status: 'failed', error: error.message, finishedAt: new Date() })
@@ -175,6 +255,22 @@ export function isIndexStale(options: { scoredJobId?: number }): boolean {
     .limit(1).get();
   if (!anyChunks) return true;
 
+  const staleScope: IndexOptions = {
+    includeProfile: true,
+    scoredJobId: options.scoredJobId,
+  };
+  const incompatibleChunk = db.select().from(documentChunks)
+    .where(eq(documentChunks.profileId, profileId))
+    .all()
+    .some((chunk) => {
+      if (!isChunkInIndexScope(chunk, staleScope)) return false;
+      const metadata = parseMetadata(chunk.metadata);
+      return !hasUsableEmbedding(chunk.embedding) ||
+        metadata.embeddingDimensions !== EMBEDDING_DIMENSIONS ||
+        metadata.embeddingModel !== EMBEDDING_MODEL;
+    });
+  if (incompatibleChunk) return true;
+
   // Simple heuristic: if the last successful index run was > 30 min ago, consider it potentially stale
   const lastRun = db.select()
     .from(indexRuns)
@@ -182,6 +278,7 @@ export function isIndexStale(options: { scoredJobId?: number }): boolean {
       eq(indexRuns.status, 'complete'),
       eq(indexRuns.profileId, profileId)
     ))
+    .orderBy(desc(indexRuns.finishedAt))
     .limit(1)
     .get();
 
@@ -210,7 +307,7 @@ export function clearProfileChunks(): void {
   const db = getDb();
   const { profileId } = resolveContext();
   // Profile chunks have null scoredJobId and specific source types
-  const profileTypes = ['master_profile', 'resume_text', 'search_preferences'];
+  const profileTypes = ['master_profile', 'resume_text', 'search_preferences', 'application_history'];
   for (const st of profileTypes) {
     db.delete(documentChunks).where(and(
       eq(documentChunks.sourceType, st),
@@ -236,7 +333,7 @@ export function getIndexStatus(): {
     
   const lastRun = db.select().from(indexRuns)
     .where(eq(indexRuns.profileId, profileId))
-    .orderBy(indexRuns.startedAt) // Should probably have an order
+    .orderBy(desc(indexRuns.startedAt))
     .limit(1).get();
 
   return {

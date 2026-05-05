@@ -1,6 +1,8 @@
 export interface JobQuery {
   titleVariants: string[];
   locations: string[];
+  targetCompanies?: string[];
+  companyTypes?: string[];
   isRemote?: boolean;
   isHybrid?: boolean;
   salaryMin?: number;
@@ -22,6 +24,9 @@ export interface RawScrapedJob {
   experienceText?: string;
   url: string;
   applyUrl?: string;
+  sourceUrl?: string;
+  sourceLabel?: string;
+  status?: 'full' | 'partial';
   postedDateText?: string;
   snippet?: string;
   employmentType?: string;
@@ -47,6 +52,15 @@ export interface PortalScanResult {
   status: 'success' | 'partial' | 'failed';
   jobs: RawScrapedJob[];
   error?: string;
+  failureCode?: string;
+  debugSnapshotPath?: string;
+  sourceHealthLabel?: string;
+  gracefulFallback?: {
+    localOnly: boolean;
+    label: string;
+    reason: string;
+    suggestedSourceIds?: string[];
+  };
 }
 
 export interface SearchExpansion {

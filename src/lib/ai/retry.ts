@@ -7,7 +7,8 @@ export async function withRetry<T>(
     maxAttempts?: number;
     initialDelay?: number;
     maxDelay?: number;
-    onRetry?: (attempt: number, error: any) => void;
+    onRetry?: (attempt: number, error: any) => void | Promise<void>;
+    shouldRetry?: (attempt: number, error: any) => boolean | Promise<boolean>;
   } = {}
 ): Promise<T> {
   const {
@@ -15,6 +16,7 @@ export async function withRetry<T>(
     initialDelay = 1000,
     maxDelay = 10000,
     onRetry,
+    shouldRetry,
   } = options;
 
   let attempt = 0;
@@ -30,6 +32,13 @@ export async function withRetry<T>(
         throw error;
       }
 
+      if (shouldRetry) {
+        const retryAllowed = await shouldRetry(attempt, error);
+        if (!retryAllowed) {
+          throw error;
+        }
+      }
+
       // Calculate delay with jitter
       const delay = Math.min(
         initialDelay * Math.pow(2, attempt - 1),
@@ -38,7 +47,7 @@ export async function withRetry<T>(
       const jitteredDelay = delay * (0.8 + Math.random() * 0.4);
 
       if (onRetry) {
-        onRetry(attempt, error);
+        await onRetry(attempt, error);
       } else {
         console.warn(`[AI Retry] Attempt ${attempt} failed, retrying in ${Math.round(jitteredDelay)}ms...`);
       }

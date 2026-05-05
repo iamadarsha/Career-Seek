@@ -27,15 +27,17 @@ import {
   actionGetSearchSummary,
   actionGetDocumentSummary,
   actionGetRecentEvents,
+  actionGetMarketInsights,
 } from './analytics-actions';
+import { AdvisoryEstimateLabel } from '@/components/ui/AdvisoryEstimateLabel';
 
-type Tab = 'overview' | 'funnel' | 'search' | 'documents' | 'weekly' | 'experiments' | 'activity';
+type Tab = 'overview' | 'funnel' | 'search' | 'market' | 'documents' | 'weekly' | 'experiments' | 'activity';
 
 // ─── Small UI helpers ─────────────────────────────────────────────────────────
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-card border border-card-border rounded-apple p-5 shadow-sm ${className}`}>
+    <div className={`apple-card p-5 ${className}`}>
       {children}
     </div>
   );
@@ -43,8 +45,8 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
 
 function KpiCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <Card>
-      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{label}</p>
+    <Card className="metric-card">
+      <p className="text-xs text-muted-foreground uppercase mb-1">{label}</p>
       <p className="text-2xl font-semibold text-foreground">{value}</p>
       {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
     </Card>
@@ -55,7 +57,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+      className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-apple px-4 py-2 text-sm font-medium transition-colors ${
         active
           ? 'bg-primary text-primary-foreground'
           : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -131,14 +133,14 @@ function OverviewTab() {
   return (
     <div className="space-y-6">
       {/* KPI row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="surface-grid grid grid-cols-2 gap-4 md:grid-cols-4">
         <KpiCard label="Applied" value={applied?.count ?? '—'} sub={applied?.conversionFromPrev != null ? `${applied.conversionFromPrev}% of saved` : undefined} />
         <KpiCard label="Interviews" value={interview?.count ?? '—'} sub={interview?.conversionFromPrev != null ? `${interview.conversionFromPrev}% of applied` : undefined} />
         <KpiCard label="Offers" value={offer?.count ?? '—'} />
         <KpiCard label="Avg. days to apply" value={timeSummary?.avgDaysToApply != null ? `${timeSummary.avgDaysToApply}d` : '—'} sub={timeSummary?.staleOpportunityCount ? `${timeSummary.staleOpportunityCount} stale` : undefined} />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="surface-grid grid grid-cols-2 gap-4 md:grid-cols-4">
         <KpiCard label="Resumes generated" value={docSummary?.totalResumes ?? '—'} />
         <KpiCard label="Cover letters" value={docSummary?.totalCoverLetters ?? '—'} />
         <KpiCard label="Best portal" value={searchSummary?.bestPortal ?? '—'} />
@@ -153,7 +155,7 @@ function OverviewTab() {
             <button
               onClick={handleRunInsights}
               disabled={runningInsights || isPending}
-              className="flex items-center gap-1.5 text-xs text-primary hover:underline disabled:opacity-50"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-apple px-3 text-xs font-semibold text-primary hover:bg-surface-container disabled:opacity-50"
             >
               <Zap size={13} />
               {runningInsights ? 'Running…' : 'Refresh insights'}
@@ -161,13 +163,13 @@ function OverviewTab() {
           }
         />
         {insights.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No active insights. Click "Refresh insights" to generate.</p>
+          <p className="text-sm text-muted-foreground">No active insights. Click &quot;Refresh insights&quot; to generate.</p>
         ) : (
           <div className="space-y-3">
             {insights.map((insight) => (
               <div key={insight.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40">
                 <span
-                  className="mt-0.5 h-2 w-2 rounded-full flex-shrink-0"
+                  className="mt-0.5 h-2 w-2 rounded-apple flex-shrink-0"
                   style={{ backgroundColor: CONFIDENCE_COLOR[insight.confidence] ?? '#8E8E93' }}
                 />
                 <div className="flex-1 min-w-0">
@@ -182,7 +184,8 @@ function OverviewTab() {
                 </div>
                 <button
                   onClick={() => handleDismiss(insight.id)}
-                  className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                  className="inline-flex min-h-11 min-w-11 flex-shrink-0 items-center justify-center rounded-apple text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label={`Dismiss insight: ${insight.title}`}
                 >
                   <X size={14} />
                 </button>
@@ -229,9 +232,9 @@ function FunnelTab() {
                     <span className="text-foreground font-semibold w-10 text-right">{stage.count}</span>
                   </div>
                 </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-2 bg-muted rounded-apple overflow-hidden">
                   <div
-                    className="h-full bg-primary rounded-full transition-all"
+                    className="h-full bg-primary rounded-apple transition-all"
                     style={{ width: `${(stage.count / maxCount) * 100}%` }}
                   />
                 </div>
@@ -288,7 +291,7 @@ function SearchTab() {
                     <td className="py-2 pr-4 text-right">{p.tierACount}</td>
                     <td className="py-2 pr-4 text-right">
                       {p.tierARate != null ? (
-                        <span className={p.tierARate > 15 ? 'text-green-500' : 'text-foreground'}>
+                        <span className={p.tierARate > 15 ? 'text-success' : 'text-foreground'}>
                           {p.tierARate}%
                         </span>
                       ) : '—'}
@@ -337,6 +340,81 @@ function SearchTab() {
   );
 }
 
+// ─── Market Tab ───────────────────────────────────────────────────────────────
+
+function BarList({ items, labelKey }: { items: any[]; labelKey: string }) {
+  const max = Math.max(...items.map((item) => item.count || 0), 1);
+  return (
+    <div className="space-y-3">
+      {items.map((item) => (
+        <div key={item[labelKey]} className="space-y-1">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-foreground">{item[labelKey]}</span>
+            <span className="text-xs text-muted-foreground">{item.count}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded bg-muted">
+            <div className="h-full rounded bg-primary" style={{ width: `${((item.count || 0) / max) * 100}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MarketTab() {
+  const [snapshot, setSnapshot] = useState<any>(null);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    startTransition(async () => {
+      const res = await actionGetMarketInsights();
+      if (res.success) setSnapshot(res.snapshot);
+    });
+  }, []);
+
+  if (!snapshot) {
+    return <Card><p className="text-sm text-muted-foreground">{isPending ? 'Computing local market snapshot...' : 'No market data yet.'}</p></Card>;
+  }
+
+  const salary = snapshot.salary || {};
+  return (
+    <div className="space-y-6">
+      <div className="surface-grid grid grid-cols-2 gap-4 md:grid-cols-4">
+        <KpiCard label="Local job pool" value={snapshot.totalJobs} sub="Computed on this machine" />
+        <KpiCard label="Salary signals" value={salary.count || 0} sub={salary.currency || 'No currency yet'} />
+        <KpiCard label="Median salary min" value={salary.medianMin ? `${salary.medianMin}` : '—'} />
+        <KpiCard label="Median salary max" value={salary.medianMax ? `${salary.medianMax}` : '—'} />
+      </div>
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <SectionHeader title="Top demanded skills" />
+          {snapshot.topSkills?.length ? <BarList items={snapshot.topSkills} labelKey="skill" /> : <p className="text-sm text-muted-foreground">No skill signals found yet.</p>}
+        </Card>
+        <Card>
+          <SectionHeader title="Most active companies" />
+          {snapshot.activeCompanies?.length ? <BarList items={snapshot.activeCompanies} labelKey="company" /> : <p className="text-sm text-muted-foreground">No company signals found yet.</p>}
+        </Card>
+      </div>
+      <Card>
+        <SectionHeader title="Trend by scrape date" />
+        {snapshot.trend?.length ? (
+          <div className="flex h-32 items-end gap-2">
+            {snapshot.trend.map((point: any) => {
+              const max = Math.max(...snapshot.trend.map((item: any) => item.count || 0), 1);
+              return (
+                <div key={point.date} className="flex flex-1 flex-col items-center gap-2">
+                  <div className="w-full rounded-t bg-primary/70" style={{ height: `${Math.max(8, (point.count / max) * 110)}px` }} />
+                  <span className="max-w-16 truncate text-[10px] text-muted-foreground">{point.date.slice(5)}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : <p className="text-sm text-muted-foreground">No trend data yet.</p>}
+      </Card>
+    </div>
+  );
+}
+
 // ─── Documents Tab ────────────────────────────────────────────────────────────
 
 function DocumentsTab() {
@@ -362,7 +440,7 @@ function DocumentsTab() {
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
-          <SectionHeader title="ATS Score Distribution" />
+          <SectionHeader title="ATS Score Distribution" action={<AdvisoryEstimateLabel />} />
           {distribution.length === 0 ? (
             <p className="text-sm text-muted-foreground">No document data yet.</p>
           ) : (
@@ -395,7 +473,7 @@ function DocumentsTab() {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span>{stat.totalCreated} created</span>
                     <span>{stat.linkedToApplications} linked</span>
-                    <span className={stat.applicationRate < 30 ? 'text-orange-400' : 'text-green-500'}>
+                    <span className={stat.applicationRate < 30 ? 'text-primary' : 'text-success'}>
                       {stat.applicationRate}% rate
                     </span>
                   </div>
@@ -407,7 +485,7 @@ function DocumentsTab() {
       </div>
 
       <Card>
-        <SectionHeader title="ATS Score vs. Outcomes" />
+        <SectionHeader title="ATS Score vs. Outcomes" action={<AdvisoryEstimateLabel />} />
         {atsVsOutcomes.length === 0 ? (
           <p className="text-sm text-muted-foreground">No outcome data yet.</p>
         ) : (
@@ -478,14 +556,14 @@ function WeeklyTab() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleExport('markdown')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border rounded-apple hover:bg-muted transition-colors"
+            className="flex min-h-11 items-center gap-1.5 rounded-apple border border-border px-3 py-2 text-xs transition-colors hover:bg-muted"
           >
             <Download size={13} />
             Export MD
           </button>
           <button
             onClick={() => handleExport('json')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border rounded-apple hover:bg-muted transition-colors"
+            className="flex min-h-11 items-center gap-1.5 rounded-apple border border-border px-3 py-2 text-xs transition-colors hover:bg-muted"
           >
             <Download size={13} />
             Export JSON
@@ -493,7 +571,7 @@ function WeeklyTab() {
           <button
             onClick={handleGenerate}
             disabled={generating}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-apple hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="flex min-h-11 items-center gap-1.5 rounded-apple bg-primary px-3 py-2 text-xs text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
             <RefreshCw size={13} className={generating ? 'animate-spin' : ''} />
             {generating ? 'Generating…' : 'Generate This Week'}
@@ -503,19 +581,19 @@ function WeeklyTab() {
 
       {!review ? (
         <Card>
-          <p className="text-sm text-muted-foreground">No weekly review yet. Click "Generate This Week" to create one.</p>
+          <p className="text-sm text-muted-foreground">No weekly review yet. Click &quot;Generate This Week&quot; to create one.</p>
         </Card>
       ) : (
         <>
           <Card>
             <p className="text-xs text-muted-foreground mb-3">{review.weekLabel}</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="surface-grid grid grid-cols-2 gap-4 md:grid-cols-4">
               <KpiCard label="Discovered" value={review.metrics.jobsDiscovered} />
               <KpiCard label="Tier A" value={review.metrics.newTierAOpportunities} />
               <KpiCard label="Applied" value={review.metrics.applicationsSubmitted} />
               <KpiCard label="Interviews" value={review.metrics.interviewsScheduled} />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="surface-grid mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
               <KpiCard label="Follow-ups done" value={review.metrics.followUpsCompleted} />
               <KpiCard label="Missed follow-ups" value={review.metrics.followUpsMissed} />
               <KpiCard label="Offers" value={review.metrics.offersReceived} />
@@ -544,7 +622,7 @@ function WeeklyTab() {
                 {review.topInsights.map((insight: any, i: number) => (
                   <div key={i} className="flex items-start gap-2">
                     <span
-                      className="mt-1.5 h-2 w-2 rounded-full flex-shrink-0"
+                      className="mt-1.5 h-2 w-2 rounded-apple flex-shrink-0"
                       style={{ backgroundColor: CONFIDENCE_COLOR[insight.confidence] ?? '#8E8E93' }}
                     />
                     <div>
@@ -610,7 +688,7 @@ function ExperimentsTab() {
         <div />
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded-apple hover:bg-primary/90 transition-colors"
+          className="flex min-h-11 items-center gap-1.5 rounded-apple bg-primary px-3 py-2 text-xs text-primary-foreground transition-colors hover:bg-primary/90"
         >
           {showCreate ? <X size={13} /> : <FlaskConical size={13} />}
           {showCreate ? 'Cancel' : 'New Experiment'}
@@ -643,7 +721,7 @@ function ExperimentsTab() {
             <button
               onClick={handleCreate}
               disabled={creating || !name.trim() || !hypothesis.trim()}
-              className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-apple hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              className="min-h-11 rounded-apple bg-primary px-4 py-2 text-sm text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               {creating ? 'Creating…' : 'Start Experiment'}
             </button>
@@ -664,7 +742,7 @@ function ExperimentsTab() {
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="text-sm font-semibold text-foreground truncate">{exp.name}</h4>
                     <span
-                      className="text-xs px-2 py-0.5 rounded-full"
+                      className="text-xs px-2 py-0.5 rounded-apple"
                       style={{
                         color: STATUS_COLOR[exp.status] ?? '#8E8E93',
                         backgroundColor: `${STATUS_COLOR[exp.status] ?? '#8E8E93'}18`,
@@ -676,7 +754,7 @@ function ExperimentsTab() {
                   <p className="text-xs text-muted-foreground">{exp.hypothesis}</p>
                   {exp.conclusion && (
                     <p className="text-xs text-foreground mt-2 flex items-start gap-1">
-                      <CheckCircle2 size={12} className="mt-0.5 text-green-500 flex-shrink-0" />
+                      <CheckCircle2 size={12} className="mt-0.5 text-success flex-shrink-0" />
                       {exp.conclusion}
                     </p>
                   )}
@@ -688,7 +766,7 @@ function ExperimentsTab() {
                 {exp.status === 'running' && (
                   <button
                     onClick={() => handleConclude(exp.id)}
-                    className="text-xs text-muted-foreground hover:text-foreground flex-shrink-0 mt-0.5"
+                    className="mt-0.5 inline-flex min-h-11 flex-shrink-0 items-center rounded-apple px-3 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                   >
                     Conclude
                   </button>
@@ -726,7 +804,7 @@ function ActivityTab() {
       <SectionHeader 
         title="Recent Activity Log" 
         action={
-          <button onClick={load} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+          <button onClick={load} className="flex min-h-11 items-center gap-1 rounded-apple px-3 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
             <RefreshCw size={12} className={isPending ? 'animate-spin' : ''} />
             Refresh
           </button>
@@ -762,7 +840,7 @@ function ActivityTab() {
                   </td>
                   <td className="px-4 py-3">
                     {ev.entityType && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      <span className="text-xs px-2 py-0.5 rounded-apple bg-muted text-muted-foreground">
                         {ev.entityType} {ev.entityId}
                       </span>
                     )}
@@ -792,6 +870,7 @@ export default function AnalyticsPage() {
     { id: 'overview', label: 'Overview', icon: <TrendingUp size={14} /> },
     { id: 'funnel', label: 'Funnel', icon: <Target size={14} /> },
     { id: 'search', label: 'Search', icon: <Search size={14} /> },
+    { id: 'market', label: 'Market', icon: <TrendingUp size={14} /> },
     { id: 'documents', label: 'Documents', icon: <FileText size={14} /> },
     { id: 'weekly', label: 'Weekly Review', icon: <Calendar size={14} /> },
     { id: 'experiments', label: 'Experiments', icon: <FlaskConical size={14} /> },
@@ -800,17 +879,24 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold text-foreground">Analytics</h2>
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="design-label">Analytics</p>
+          <h2 className="mt-2 font-display text-3xl font-semibold leading-tight md:text-4xl">Market signals and application performance</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            Track funnel health, search quality, document usage, and insight recommendations.
+          </p>
+        </div>
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 flex-wrap">
+      <div className="flex flex-wrap items-center gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors ${
+            aria-pressed={tab === t.id}
+            className={`inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-apple px-3 py-2 text-sm font-semibold transition-colors ${
               tab === t.id
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -826,6 +912,7 @@ export default function AnalyticsPage() {
       {tab === 'overview' && <OverviewTab />}
       {tab === 'funnel' && <FunnelTab />}
       {tab === 'search' && <SearchTab />}
+      {tab === 'market' && <MarketTab />}
       {tab === 'documents' && <DocumentsTab />}
       {tab === 'weekly' && <WeeklyTab />}
       {tab === 'experiments' && <ExperimentsTab />}

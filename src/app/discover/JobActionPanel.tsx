@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { 
   generateResumePipeline, 
   generateCoverLetterAction, 
@@ -9,6 +9,24 @@ import {
   getDocumentAssets 
 } from './document-actions';
 import { Loader2, FileText, CheckCircle2, MessageSquare, Briefcase, ChevronDown, ChevronUp, Copy, ExternalLink, Download } from 'lucide-react';
+import { getSystemCapabilitiesState } from '@/app/actions';
+import { AdvisoryEstimateLabel } from '@/components/ui/AdvisoryEstimateLabel';
+import { AtsReportBreakdown } from '@/components/ui/AtsReportBreakdown';
+
+function parseAtsReportContent(content: unknown): Record<string, unknown> | null {
+  if (!content) return null;
+  if (typeof content === 'object' && !Array.isArray(content)) return content as Record<string, unknown>;
+  if (typeof content !== 'string') return null;
+
+  try {
+    const parsed = JSON.parse(content);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown>
+      : { explanation: content };
+  } catch {
+    return { explanation: content };
+  }
+}
 
 export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, jobUrl: string }) {
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
@@ -16,18 +34,20 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
   const [assets, setAssets] = useState<any[]>([]);
   const [isApplied, setIsApplied] = useState(false);
   const [expandedAsset, setExpandedAsset] = useState<number | null>(null);
+  const [capabilities, setCapabilities] = useState<any>(null);
 
-  useEffect(() => {
-    loadAssets();
-  }, [scoredJobId]);
-
-  async function loadAssets() {
+  const loadAssets = useCallback(async () => {
     const res = await getDocumentAssets(scoredJobId);
     if (res.success) {
       setAssets(res.assets);
       setIsApplied(res.isApplied);
     }
-  }
+  }, [scoredJobId]);
+
+  useEffect(() => {
+    loadAssets().catch(() => undefined);
+    getSystemCapabilitiesState().then(setCapabilities).catch(() => undefined);
+  }, [loadAssets]);
 
   const handleGenerateResume = async () => {
     try {
@@ -85,14 +105,27 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
   const latestAts = assets.find(a => a.type === 'ats_report');
   const latestCoverLetter = assets.find(a => a.type === 'cover_letter');
   const latestOutreach = assets.find(a => a.type === 'outreach_note');
+  const latestAtsReport = parseAtsReportContent(latestAts?.content);
+  const aiGenerationLimited =
+    capabilities?.safe_modes?.ai_generation_limited === true ||
+    capabilities?.has_ai_provider === false;
+  const toggleExpandedAsset = (assetId: number) => {
+    setExpandedAsset(expandedAsset === assetId ? null : assetId);
+  };
 
   return (
     <div className="space-y-4 pt-4 border-t border-border mt-4">
       <h4 className="font-semibold text-sm">Application Assets</h4>
       
       {errorAction && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-apple text-sm">
+        <div className="p-3 bg-danger-bg border border-danger-border text-danger rounded-apple text-sm">
           {errorAction}
+        </div>
+      )}
+
+      {aiGenerationLimited && (
+        <div className="rounded-apple border border-warning-border bg-warning-bg p-3 text-xs text-warning">
+          No live AI provider is ready. Document generation will use local fallbacks where available.
         </div>
       )}
 
@@ -100,7 +133,7 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
         <button 
           onClick={handleGenerateResume}
           disabled={loadingAction !== null}
-          className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-apple text-sm font-medium hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50"
+          className="flex min-h-11 items-center gap-2 rounded-apple border border-card-border bg-surface-container-low px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-surface-container-low disabled:opacity-50"
         >
           {loadingAction === 'resume' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
           {latestResume ? 'Regenerate Resume' : 'Generate Resume'}
@@ -109,7 +142,7 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
         <button 
           onClick={handleGenerateCoverLetter}
           disabled={loadingAction !== null}
-          className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-apple text-sm font-medium hover:bg-purple-100 transition-colors border border-purple-200 disabled:opacity-50"
+          className="flex min-h-11 items-center gap-2 rounded-apple border border-warning-border bg-warning-bg px-3 py-2 text-sm font-medium text-warning transition-colors hover:bg-warning-bg disabled:opacity-50"
         >
           {loadingAction === 'cover_letter' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
           {latestCoverLetter ? 'Regenerate Cover Letter' : 'Generate Cover Letter'}
@@ -118,7 +151,7 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
         <button 
           onClick={handleGenerateOutreach}
           disabled={loadingAction !== null}
-          className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-apple text-sm font-medium hover:bg-orange-100 transition-colors border border-orange-200 disabled:opacity-50"
+          className="flex min-h-11 items-center gap-2 rounded-apple border border-warning-border bg-warning-bg px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-warning-bg disabled:opacity-50"
         >
           {loadingAction === 'outreach' ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
           {latestOutreach ? 'Regenerate Outreach Note' : 'Generate Outreach Note'}
@@ -129,7 +162,7 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
         <button 
           onClick={handleToggleApplied}
           disabled={loadingAction !== null}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-apple text-sm font-medium transition-colors border disabled:opacity-50 ${isApplied ? 'bg-green-100 text-green-800 border-green-200' : 'bg-secondary text-secondary-foreground border-border hover:bg-secondary-hover'}`}
+          className={`flex min-h-11 items-center gap-2 rounded-apple border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${isApplied ? 'bg-success-bg text-success border-success-border' : 'bg-secondary text-secondary-foreground border-border hover:bg-secondary-hover'}`}
         >
           {loadingAction === 'applied' ? <Loader2 className="w-4 h-4 animate-spin" /> : (isApplied ? <CheckCircle2 className="w-4 h-4" /> : <Briefcase className="w-4 h-4" />)}
           {isApplied ? 'Applied' : 'Mark Applied'}
@@ -139,7 +172,7 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
           href={jobUrl}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-apple text-sm font-medium hover:bg-primary/90 transition-colors"
+          className="flex min-h-11 items-center gap-2 rounded-apple bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <ExternalLink className="w-4 h-4" /> Open Job
         </a>
@@ -150,64 +183,46 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
         <div className="mt-6 space-y-3">
           {/* Resume & ATS */}
           {latestResume && (
-            <div className="bg-card border border-border rounded-apple p-4 shadow-sm">
-              <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedAsset(expandedAsset === latestResume.id ? null : latestResume.id)}>
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-blue-600" />
-                  <div>
-                    <h5 className="font-medium text-sm">Tailored Resume (v{latestResume.version})</h5>
-                    {latestAts && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        ATS Match: <span className="font-semibold text-foreground">{latestAts.atsScore}%</span>
-                      </p>
-                    )}
+            <div className="apple-card p-4">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="flex min-h-11 flex-1 items-center justify-between gap-3 rounded-apple text-left focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  aria-expanded={expandedAsset === latestResume.id}
+                  onClick={() => toggleExpandedAsset(latestResume.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <div>
+                      <h5 className="font-medium text-sm">Tailored Resume (v{latestResume.version})</h5>
+                      {latestAts && (
+                        <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>ATS Match: <span className="font-semibold text-foreground">{latestAts.atsScore}%</span></span>
+                          <AdvisoryEstimateLabel />
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={(e) => { 
-                    e.stopPropagation(); 
-                    window.location.href = `/api/download?path=${encodeURIComponent(latestResume.filePath)}`;
-                  }} className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground" title="Download Document">
-                    <Download className="w-4 h-4" />
-                  </button>
                   {expandedAsset === latestResume.id ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                </div>
+                </button>
+                <a
+                  href={`/api/download?assetId=${encodeURIComponent(String(latestResume.id))}`}
+                  download
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label={`Download tailored resume v${latestResume.version || 1}`}
+                  title="Download tailored resume"
+                >
+                  <Download className="w-4 h-4" />
+                </a>
               </div>
               
               {expandedAsset === latestResume.id && latestAts && (
                 <div className="mt-4 pt-4 border-t border-border text-sm space-y-4">
-                  {(() => {
-                    const ats = JSON.parse(latestAts.content);
-                    return (
-                      <>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <span className="font-medium text-green-700">Found Keywords:</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {ats.keywordsFound?.map((k: string, i: number) => <span key={i} className="text-xs bg-green-50 border border-green-200 text-green-800 px-1.5 py-0.5 rounded">{k}</span>)}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="font-medium text-red-700">Missing Keywords:</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {ats.keywordsMissing?.map((k: string, i: number) => <span key={i} className="text-xs bg-red-50 border border-red-200 text-red-800 px-1.5 py-0.5 rounded">{k}</span>)}
-                            </div>
-                          </div>
-                        </div>
-                        {ats.sectionRecommendations?.length > 0 && (
-                          <div className="bg-orange-50/50 p-3 rounded-apple border border-orange-100">
-                            <span className="font-medium text-orange-800">Recommendations:</span>
-                            <ul className="list-disc pl-4 mt-1 space-y-1 text-orange-900">
-                              {ats.sectionRecommendations.map((r: any, i: number) => (
-                                <li key={i}><strong>{r.section}:</strong> {r.recommendation}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        <p className="text-xs text-muted-foreground">Local file: {latestResume.filePath}</p>
-                      </>
-                    );
-                  })()}
+                  <AtsReportBreakdown
+                    report={latestAtsReport}
+                    score={latestAts.atsScore}
+                    resumeFilePath={latestResume.filePath}
+                  />
                 </div>
               )}
             </div>
@@ -215,18 +230,29 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
 
           {/* Cover Letter */}
           {latestCoverLetter && (
-            <div className="bg-card border border-border rounded-apple p-4 shadow-sm">
-              <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedAsset(expandedAsset === latestCoverLetter.id ? null : latestCoverLetter.id)}>
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-purple-600" />
-                  <h5 className="font-medium text-sm">Cover Letter (v{latestCoverLetter.version})</h5>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(latestCoverLetter.content); }} className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground" title="Copy">
-                    <Copy className="w-4 h-4" />
-                  </button>
+            <div className="apple-card p-4">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="flex min-h-11 flex-1 items-center justify-between gap-3 rounded-apple text-left focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  aria-expanded={expandedAsset === latestCoverLetter.id}
+                  onClick={() => toggleExpandedAsset(latestCoverLetter.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-5 h-5 text-warning" />
+                    <h5 className="font-medium text-sm">Cover Letter (v{latestCoverLetter.version})</h5>
+                  </div>
                   {expandedAsset === latestCoverLetter.id ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(latestCoverLetter.content)}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label={`Copy cover letter v${latestCoverLetter.version || 1}`}
+                  title="Copy cover letter"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
               {expandedAsset === latestCoverLetter.id && (
                 <div className="mt-4 pt-4 border-t border-border">
@@ -240,18 +266,29 @@ export function JobActionPanel({ scoredJobId, jobUrl }: { scoredJobId: number, j
 
           {/* Outreach Note */}
           {latestOutreach && (
-            <div className="bg-card border border-border rounded-apple p-4 shadow-sm">
-              <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedAsset(expandedAsset === latestOutreach.id ? null : latestOutreach.id)}>
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="w-5 h-5 text-orange-600" />
-                  <h5 className="font-medium text-sm">Outreach Note (v{latestOutreach.version})</h5>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(latestOutreach.content); }} className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground" title="Copy">
-                    <Copy className="w-4 h-4" />
-                  </button>
+            <div className="apple-card p-4">
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  className="flex min-h-11 flex-1 items-center justify-between gap-3 rounded-apple text-left focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  aria-expanded={expandedAsset === latestOutreach.id}
+                  onClick={() => toggleExpandedAsset(latestOutreach.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <h5 className="font-medium text-sm">Outreach Note (v{latestOutreach.version})</h5>
+                  </div>
                   {expandedAsset === latestOutreach.id ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigator.clipboard.writeText(latestOutreach.content)}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
+                  aria-label={`Copy outreach note v${latestOutreach.version || 1}`}
+                  title="Copy outreach note"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
               {expandedAsset === latestOutreach.id && (
                 <div className="mt-4 pt-4 border-t border-border">

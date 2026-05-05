@@ -5,8 +5,8 @@ import { logAutomationRun } from "./automation-logs";
 import { checkStaleOpportunities, checkReminders } from "./rules-engine";
 import { resolveContext } from '@/lib/platform/identity';
 import { exportWorkspaceBackup } from '../integrations/backup-service';
-import { JobService } from '@/lib/jobs/service';
 import { searchProfiles } from '@/db/schema';
+import { enqueuePlatformJob, enqueueScrapeJob } from '@/lib/queue/enqueue';
 
 export async function runScheduler() {
   const db = getDb();
@@ -66,13 +66,13 @@ export async function runScheduler() {
 
         if (activeSearchProfile) {
           const portals = JSON.parse(activeSearchProfile.preferredPortals || '["linkedin", "naukri"]');
-          await JobService.enqueue({
-            jobType: 'scan_jobs',
+          await enqueueScrapeJob({
             profileId,
-            payload: {
-              searchProfileId: activeSearchProfile.id,
-              selectedPortals: portals
-            }
+            searchProfileId: activeSearchProfile.id,
+            selectedPortals: portals,
+            bypassCache: false,
+          }, {
+            profileId,
           });
           success = true;
           resultSummary = `Enqueued scan for search profile: ${activeSearchProfile.title}`;
@@ -84,7 +84,7 @@ export async function runScheduler() {
         const profileId = task.profileId;
         if (!profileId) throw new Error("Task missing profileId");
         
-        await JobService.enqueue({
+        await enqueuePlatformJob({
           jobType: 'score_jobs',
           profileId,
           payload: {}
@@ -95,7 +95,7 @@ export async function runScheduler() {
         const profileId = task.profileId;
         if (!profileId) throw new Error("Task missing profileId");
         
-        await JobService.enqueue({
+        await enqueuePlatformJob({
           jobType: 'enrich_jobs',
           profileId,
           payload: { batch: true }

@@ -35,8 +35,67 @@ next-env.d.ts
 # database
 *.sqlite
 *.sqlite-journal
-/data
+*.db
+*.db-*
+*.db-journal
+*.db-shm
+*.db-wal
+/data/*
+!/data/company_careers_seed.csv
+!/data/role_family_packs.json
+!/data/ats_provider_mapping.json
+!/data/source_registry.json
 /.data
+/.jobhunt-india
+.jobhunt-india
+/.proof-data
+/.queue-proof-data
+/.route-proof-data
+/.source-proof-data
+/data-test-run
+/data-clean-proof
+/.codex-flow-data
+/qa-artifacts
+/.playwright-mcp
+
+# runtime binaries downloaded by bootstrap (never commit these)
+/binaries/
+/.venv-career-seek/
+
+# build and runtime logs
+build_log.txt
+nohup.out
+*.log
 
 # scratch
 /scratch
+
+# cloned reference repositories
+/vendors
+
+# macOS extended attributes
+._*
+.Spotlight-V100
+.Trashes
+
+# UX audit screenshots and temp directories (dev artefacts, not source)
+ux-*.png
+ux-*.txt
+worker6-*.png
+career-seek-*.png
+qa-*.png
+/tmp-ui-audit*/
+/tmp-overlap-audit*/
+/output/
+
+# skill and superpowers tooling (local dev config, not project source)
+/.skill-archive/
+/.superpowers/
+
+# dev session notes (not project docs)
+FIXES.md
+TEST_RUN_OBSERVATIONS.md
+
+# stray nested project copy
+/Career\ Seek/
+/Career Seek/

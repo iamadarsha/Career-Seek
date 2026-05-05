@@ -13,24 +13,34 @@ export function normalizeJob(raw: RawScrapedJob, scanId: number, searchProfileId
   // 1. Normalize Date
   if (raw.postedDateText) {
     try {
-      // Very basic normalization, should be expanded based on portal specifics
-      // E.g., "2 days ago", "1 week ago", "Just now"
       const text = raw.postedDateText.toLowerCase();
       const now = new Date();
-      if (text.includes('day')) {
+      if (text.includes('today') || text.includes('just now') || text.includes('hour') || text.includes('minute')) {
+        normalized.postedDate = now;
+      } else if (text.includes('yesterday')) {
+        now.setDate(now.getDate() - 1);
+        normalized.postedDate = now;
+      } else if (text.includes('day')) {
         const match = text.match(/(\d+)/);
         if (match) {
           now.setDate(now.getDate() - parseInt(match[1], 10));
           normalized.postedDate = now;
         }
-      } else if (text.includes('hour') || text.includes('just now')) {
-        normalized.postedDate = now;
       } else if (text.includes('week')) {
         const match = text.match(/(\d+)/);
         if (match) {
           now.setDate(now.getDate() - parseInt(match[1], 10) * 7);
           normalized.postedDate = now;
         }
+      } else if (text.includes('month')) {
+        const match = text.match(/(\d+)/);
+        if (match) {
+          now.setMonth(now.getMonth() - parseInt(match[1], 10));
+          normalized.postedDate = now;
+        }
+      } else {
+        const parsed = Date.parse(raw.postedDateText);
+        if (!Number.isNaN(parsed)) normalized.postedDate = new Date(parsed);
       }
     } catch (e) {
       console.warn('Failed to parse date:', raw.postedDateText);
@@ -38,9 +48,11 @@ export function normalizeJob(raw: RawScrapedJob, scanId: number, searchProfileId
   }
 
   // 2. Normalize Experience
-  if (raw.experienceText) {
+  const inferredExperienceText = raw.experienceText || String(raw.snippet || '').match(/(?:experience|exp\.?)\s*[:\-]?\s*(\d+(?:\s*-\s*\d+)?\+?\s*(?:years?|yrs?))/i)?.[1];
+  if (inferredExperienceText) {
+    normalized.experienceText ||= inferredExperienceText;
     // E.g., "3-5 Yrs" or "5+ Years"
-    const expMatch = raw.experienceText.match(/(\d+)(?:\s*-\s*(\d+))?/);
+    const expMatch = inferredExperienceText.match(/(\d+)(?:\s*-\s*(\d+))?/);
     if (expMatch) {
       normalized.experienceMin = parseInt(expMatch[1], 10);
       if (expMatch[2]) {
@@ -50,19 +62,45 @@ export function normalizeJob(raw: RawScrapedJob, scanId: number, searchProfileId
   }
 
   // 3. Normalize Salary
-  if (raw.salaryText) {
-    // E.g., "₹ 20,00,000 - 30,00,000 P.A."
-    const salaryMatch = raw.salaryText.match(/(\d+(?:,\d+)*)/g);
-    if (salaryMatch && salaryMatch.length >= 1) {
-      normalized.salaryMin = parseInt(salaryMatch[0].replace(/,/g, ''), 10);
-      if (salaryMatch.length >= 2) {
-        normalized.salaryMax = parseInt(salaryMatch[1].replace(/,/g, ''), 10);
+  const inferredSalaryText = raw.salaryText || String(raw.snippet || '').match(/(?:₹|rs\.?|inr)\s*[\d,.]+(?:\s*(?:-|to|–)\s*(?:₹|rs\.?|inr)?\s*[\d,.]+)?\s*(?:lpa|lakhs?|lacs?|crore|cr)?/i)?.[0];
+  if (inferredSalaryText) {
+    normalized.salaryText ||= inferredSalaryText;
+    const lower = inferredSalaryText.toLowerCase();
+    const compactLower = lower.replace(/,/g, '');
+    const unitMultiplier = (value?: string) => {
+      const unit = String(value || '').toLowerCase();
+      if (/cr|crore/.test(unit)) return 10_000_000;
+      if (/lpa|lac|lakh|lakhs/.test(unit)) return 100_000;
+      if (/\bk\b/.test(unit)) return 1_000;
+      return undefined;
+    };
+    const rangeMatch = compactLower.match(/(\d+(?:\.\d+)?)\s*(cr|crore|lpa|lac|lakh|lakhs|k)?\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)\s*(cr|crore|lpa|lac|lakh|lakhs|k)?/);
+    const multiplier =
+      unitMultiplier(rangeMatch?.[2]) ||
+      unitMultiplier(rangeMatch?.[4]) ||
+      unitMultiplier(compactLower) ||
+      1;
+
+    if (rangeMatch && multiplier > 1) {
+      normalized.salaryMin = Math.round(Number(rangeMatch[1]) * multiplier);
+      normalized.salaryMax = Math.round(Number(rangeMatch[3]) * multiplier);
+    } else {
+      const salaryMatch = inferredSalaryText.match(/(\d+(?:,\d+)*(?:\.\d+)?)/g);
+      if (salaryMatch && salaryMatch.length >= 1) {
+        normalized.salaryMin = Math.round(Number(salaryMatch[0].replace(/,/g, '')) * multiplier);
+        if (salaryMatch.length >= 2) {
+          normalized.salaryMax = Math.round(Number(salaryMatch[1].replace(/,/g, '')) * multiplier);
+        }
       }
-      if (raw.salaryText.includes('₹') || raw.salaryText.toLowerCase().includes('inr')) {
-        normalized.salaryCurrency = 'INR';
-      } else if (raw.salaryText.includes('$') || raw.salaryText.toLowerCase().includes('usd')) {
-        normalized.salaryCurrency = 'USD';
-      }
+    }
+
+    if (inferredSalaryText.includes('₹') || lower.includes('inr')) {
+      normalized.salaryCurrency = 'INR';
+    } else if (inferredSalaryText.includes('$') || lower.includes('usd')) {
+      normalized.salaryCurrency = 'USD';
+    }
+    if (!normalized.salaryCurrency && /lpa|lac|lakh|lakhs|₹|inr/.test(lower)) {
+      normalized.salaryCurrency = 'INR';
     }
   }
 

@@ -1,13 +1,35 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { actionGetNotifications, actionMarkAsRead, actionMarkAllAsRead, actionArchiveNotification } from "../automation-actions";
-import { Bell, Check, Trash2, ExternalLink } from "lucide-react";
+import {
+  Archive,
+  Bell,
+  Check,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
+import {
+  actionArchiveNotification,
+  actionGetNotifications,
+  actionMarkAllAsRead,
+  actionMarkAsRead,
+} from "../automation-actions";
+
+function priorityClass(priority: string) {
+  if (priority === "high") return "bg-danger shadow-golden-sm";
+  if (priority === "medium") return "bg-warning shadow-golden-sm";
+  return "bg-primary shadow-golden-sm";
+}
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isPending, startTransition] = useTransition();
+
+  const unread = notifications.filter((notification) => !notification.isRead).length;
+  const highPriority = notifications.filter((notification) => notification.priority === "high").length;
 
   const load = () => {
     startTransition(async () => {
@@ -16,7 +38,9 @@ export default function NotificationsPage() {
     });
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const handleMarkAsRead = async (id: number) => {
     await actionMarkAsRead(id);
@@ -34,66 +58,118 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Bell className="w-6 h-6" /> Notifications
-        </h1>
-        {notifications.some(n => !n.isRead) && (
-          <button 
-            onClick={handleMarkAllRead}
-            className="text-sm text-primary hover:underline font-medium"
+    <div className="space-y-7 pb-16">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="design-label">Notifications</p>
+          <h1 className="mt-2 max-w-4xl font-display text-3xl font-semibold leading-tight md:text-4xl">Follow-ups, scan outcomes, and stale-job nudges</h1>
+          <p className="mt-3 max-w-3xl text-muted-foreground">
+            This is the recovery rail for the job search: reminders, automation outcomes, and actions that should not get lost.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={load}
+            disabled={isPending}
+            className="design-button-secondary px-4 text-sm font-semibold disabled:opacity-50"
           >
-            Mark all as read
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
           </button>
-        )}
-      </div>
+          {unread > 0 && (
+            <button
+              onClick={handleMarkAllRead}
+              className="design-button-primary px-4 text-sm font-semibold"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Mark all read
+            </button>
+          )}
+        </div>
+      </header>
+
+      <section className="surface-grid grid gap-4 md:grid-cols-3">
+        <div className="apple-card metric-card p-5">
+          <p className="text-sm font-semibold text-muted-foreground">Unread</p>
+          <p className="mt-2 font-display text-4xl font-semibold leading-none text-primary">{unread}</p>
+        </div>
+        <div className="apple-card metric-card p-5">
+          <p className="text-sm font-semibold text-muted-foreground">High priority</p>
+          <p className="mt-2 font-display text-4xl font-semibold leading-none text-danger">{highPriority}</p>
+        </div>
+        <div className="apple-card metric-card p-5">
+          <p className="text-sm font-semibold text-muted-foreground">Total visible</p>
+          <p className="mt-2 font-display text-4xl font-semibold leading-none">{notifications.length}</p>
+        </div>
+      </section>
 
       {notifications.length === 0 ? (
-        <div className="bg-card border border-card-border rounded-apple-lg p-12 text-center text-muted-foreground">
-          <Bell className="w-12 h-12 mx-auto mb-4 opacity-20" />
-          <p>No new notifications.</p>
+        <div className="apple-card rounded-apple p-10 text-center">
+          <Bell className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h2 className="mt-4 text-xl font-semibold">Nothing needs attention right now</h2>
+          <p className="mt-2 text-muted-foreground">
+            When scans finish, follow-ups go stale, or reminders become due, they will appear here.
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Link href="/" className="design-button-primary px-5 text-sm font-semibold">
+              Open Today
+            </Link>
+            <Link href="/pipeline" className="design-button-secondary px-5 text-sm font-semibold">
+              Review Pipeline
+            </Link>
+          </div>
         </div>
       ) : (
-        <div className="bg-card border border-card-border rounded-apple-lg shadow-sm divide-y divide-card-border">
-          {notifications.map(n => (
-            <div key={n.id} className={`p-4 flex items-start gap-4 transition-colors ${n.isRead ? 'opacity-70 bg-black/[0.01] dark:bg-white/[0.01]' : 'bg-background'}`}>
-              <div className="mt-1">
-                {n.priority === 'high' ? (
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
-                ) : n.isRead ? (
-                  <div className="w-2.5 h-2.5 rounded-full border-2 border-muted-foreground/30" />
-                ) : (
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                )}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm ${n.isRead ? 'font-medium text-foreground/80' : 'font-semibold text-foreground'}`}>
-                  {n.title}
+        <div className="apple-card overflow-hidden rounded-apple">
+          {notifications.map((notification) => (
+            <article
+              key={notification.id}
+              className={`flex flex-col gap-4 border-b border-card-border p-5 last:border-b-0 md:flex-row md:items-start ${
+                notification.isRead ? "bg-surface/50" : "bg-surface-container-low/50"
+              }`}
+            >
+              <span className={`mt-1 h-3 w-3 shrink-0 rounded-sharp shadow-lg ${priorityClass(notification.priority)}`} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="font-semibold">{notification.title}</h2>
+                  {!notification.isRead && (
+                    <span className="rounded-apple bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">New</span>
+                  )}
+                </div>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{notification.message}</p>
+                <p className="mt-3 text-xs font-medium text-muted-foreground">
+                  {new Date(notification.createdAt).toLocaleString("en-IN", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </p>
-                <p className="text-sm text-muted-foreground mt-0.5 whitespace-pre-wrap">{n.message}</p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {new Date(n.createdAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                </p>
               </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {n.actionUrl && (
-                  <Link href={n.actionUrl} className="p-2 text-muted-foreground hover:text-primary rounded-apple hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                    <ExternalLink className="w-4 h-4" />
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {notification.actionUrl && (
+                  <Link href={notification.actionUrl} className="design-button-secondary px-3 text-sm font-semibold">
+                    Open <ExternalLink className="h-4 w-4" />
                   </Link>
                 )}
-                {!n.isRead && (
-                  <button onClick={() => handleMarkAsRead(n.id)} className="p-2 text-muted-foreground hover:text-green-500 rounded-apple hover:bg-black/5 dark:hover:bg-white/5 transition-colors" title="Mark as read">
-                    <Check className="w-4 h-4" />
+                {!notification.isRead && (
+                  <button
+                    onClick={() => handleMarkAsRead(notification.id)}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-apple border border-success-border bg-success-bg px-3 text-sm font-semibold text-success"
+                  >
+                    <Check className="h-4 w-4" />
+                    Read
                   </button>
                 )}
-                <button onClick={() => handleArchive(n.id)} className="p-2 text-muted-foreground hover:text-red-500 rounded-apple hover:bg-black/5 dark:hover:bg-white/5 transition-colors" title="Archive">
-                  <Trash2 className="w-4 h-4" />
+                <button
+                  onClick={() => handleArchive(notification.id)}
+                  className="design-button-secondary px-3 text-sm font-semibold text-muted-foreground"
+                >
+                  <Archive className="h-4 w-4" />
+                  Archive
                 </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}

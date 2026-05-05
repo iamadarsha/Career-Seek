@@ -2,8 +2,7 @@
 
 import { getNotifications, getUnreadCount, markAsRead, markAllAsRead, archiveNotification, getPreferences, updatePreference } from "@/lib/services/automation/notification-service";
 import { getDailyPriorities } from "@/lib/services/automation/urgency-service";
-import { getRecentLogs, clearOldLogs } from "@/lib/services/automation/automation-logs";
-import { runScheduler, initializeScheduler } from "@/lib/services/automation/scheduler-service";
+import { getRecentLogs } from "@/lib/services/automation/automation-logs";
 
 export async function actionGetNotifications(includeArchived = false) {
   return await getNotifications(includeArchived);
@@ -34,6 +33,7 @@ export async function actionGetRecentLogs() {
 }
 
 export async function actionRunSchedulerNow() {
+  const { runScheduler, initializeScheduler } = await import("@/lib/services/automation/scheduler-service");
   await initializeScheduler(); // Ensure defaults exist
   return await runScheduler();
 }

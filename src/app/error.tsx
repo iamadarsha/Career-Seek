@@ -15,22 +15,17 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] p-8 text-center bg-card border border-red-200 rounded-apple-lg shadow-sm animate-in fade-in zoom-in duration-300">
-      <div className="p-4 bg-red-50 rounded-full text-red-500 mb-6">
+    <div className="apple-card flex min-h-[400px] flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300">
+      <div className="mb-6 rounded-apple bg-danger-bg p-4 text-danger">
         <AlertTriangle className="w-10 h-10" />
       </div>
-      <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">Something went wrong</h2>
+      <h2 className="text-2xl font-bold text-foreground mb-2">Something went wrong</h2>
       <p className="text-muted-foreground max-w-md mb-8">
-        The application encountered an unexpected error. This might be due to a background job conflict or a network issue.
+        This view hit a recoverable problem. Try again, or check System Status if it repeats.
       </p>
-      <div className="bg-red-50/50 p-4 rounded-apple border border-red-100 text-left mb-8 w-full overflow-auto max-h-40">
-        <p className="text-xs font-mono text-red-700 whitespace-pre-wrap">
-          {error.message || 'Unknown error'}
-        </p>
-      </div>
       <button
         onClick={() => reset()}
-        className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-apple font-semibold hover:bg-primary-hover transition-all shadow-sm active:scale-95"
+        className="design-button-primary px-6 py-3 font-semibold active:scale-95"
       >
         <RotateCcw className="w-4 h-4" />
         Try Again

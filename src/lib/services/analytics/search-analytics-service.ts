@@ -23,6 +23,7 @@ import {
   isNotNull,
   inArray,
 } from 'drizzle-orm';
+import { isValidationJob } from '@/lib/services/documents/asset-filters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -371,42 +372,35 @@ export function getSearchSummary(): {
 } {
   const db = getDb();
 
-  // Distinct portals from normalizedJobs
-  const portalsRow = db
-    .select({ c: sql<number>`count(distinct ${normalizedJobs.portal})` })
-    .from(normalizedJobs)
-    .get();
-  const totalPortals = Number(portalsRow?.c ?? 0);
+  const visibleJobs = db.select({
+    portal: normalizedJobs.portal,
+    title: normalizedJobs.title,
+    company: normalizedJobs.company,
+  }).from(normalizedJobs).all().filter((job) => !isValidationJob(job));
 
-  // Total discovered
-  const discoveredRow = db.select({ c: count() }).from(normalizedJobs).get();
-  const totalDiscovered = Number(discoveredRow?.c ?? 0);
+  const totalPortals = new Set(visibleJobs.map((job) => job.portal).filter(Boolean)).size;
 
-  // Tier A density across all scored jobs
-  const tierStatsRow = db
-    .select({
-      totalScored: sql<number>`count(*)`,
-      tierACount: sql<number>`sum(case when ${scoredJobs.tier} = 'A' then 1 else 0 end)`,
-    })
+  const totalDiscovered = visibleJobs.length;
+
+  const scoredRows = db.select({
+    tier: scoredJobs.tier,
+    portal: normalizedJobs.portal,
+    title: normalizedJobs.title,
+    company: normalizedJobs.company,
+  })
     .from(scoredJobs)
-    .get();
-  const totalScored = Number(tierStatsRow?.totalScored ?? 0);
-  const tierATotal = Number(tierStatsRow?.tierACount ?? 0);
+    .leftJoin(normalizedJobs, eq(scoredJobs.normalizedJobId, normalizedJobs.id))
+    .all()
+    .filter((row) => !isValidationJob(row));
+  const totalScored = scoredRows.length;
+  const tierATotal = scoredRows.filter((row) => row.tier === 'A').length;
   const tierADensity = rate(tierATotal, totalScored);
 
-  // Best portal: highest application count
-  const portalApps = db
-    .select({
-      portal: applications.portal,
-      c: sql<number>`count(*)`,
-    })
-    .from(applications)
-    .where(isNotNull(applications.portal))
-    .groupBy(applications.portal)
-    .orderBy(desc(sql`c`))
-    .limit(1)
-    .get();
-  const bestPortal = portalApps?.portal ?? null;
+  const portalCounts = new Map<string, number>();
+  for (const app of db.select().from(applications).all().filter((app) => !isValidationJob(app) && app.portal)) {
+    portalCounts.set(app.portal!, (portalCounts.get(app.portal!) || 0) + 1);
+  }
+  const bestPortal = [...portalCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 
   // Best search profile: highest tier A count
   const bestProfileRow = db

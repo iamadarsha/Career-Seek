@@ -103,6 +103,49 @@ export const scanPortalRuns = sqliteTable('scan_portal_runs', {
   finishedAt: integer('finished_at', { mode: 'timestamp' }),
 });
 
+export const sourceRegistry = sqliteTable('source_registry', {
+  id: text('id').primaryKey(),
+  label: text('label').notNull(),
+  sourceType: text('source_type').notNull(),
+  priority: integer('priority').notNull(),
+  defaultEnabled: integer('default_enabled', { mode: 'boolean' }).default(false),
+  payload: text('payload').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const companyCareerSources = sqliteTable('company_career_sources', {
+  id: text('id').primaryKey(),
+  sector: text('sector').notNull(),
+  subsector: text('subsector'),
+  roleFamily: text('role_family').notNull(),
+  company: text('company').notNull(),
+  priority: integer('priority').notNull(),
+  countryFocus: text('country_focus').notNull(),
+  indiaPresence: text('india_presence'),
+  careerUrlHint: text('career_url_hint'),
+  careerUrlFinal: text('career_url_final').notNull(),
+  atsType: text('ats_type').notNull(),
+  cityTags: text('city_tags'),
+  remotePossible: integer('remote_possible', { mode: 'boolean' }).default(false),
+  roleKeywords: text('role_keywords'),
+  notes: text('notes'),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const roleFamilyPackRegistry = sqliteTable('role_family_pack_registry', {
+  id: text('id').primaryKey(),
+  label: text('label').notNull(),
+  payload: text('payload').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+export const atsProviderMappings = sqliteTable('ats_provider_mappings', {
+  id: text('id').primaryKey(),
+  label: text('label').notNull(),
+  payload: text('payload').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
 export const searchExpansions = sqliteTable('search_expansions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   scanPortalRunId: integer('scan_portal_run_id').notNull().references(() => scanPortalRuns.id),
@@ -220,7 +263,11 @@ export const documentChunks = sqliteTable('document_chunks', {
   section: text('section'), // e.g. 'experience_0', 'skills', 'summary', 'qualifications'
   content: text('content').notNull(), // the raw text chunk
   metadata: text('metadata'), // JSON: extra labels, timestamps, etc.
-  embedding: text('embedding'), // JSON float array (768-dim)
+  embedding: text('embedding'), // JSON float array; nullable when vectors live only in Qdrant
+  embeddingProvider: text('embedding_provider'), // e.g. 'local-keyword', 'xenova', 'ollama', 'openai-compatible'
+  embeddingModel: text('embedding_model'), // concrete embedding model used for this chunk
+  embeddingDimensions: integer('embedding_dimensions'), // vector width for compatibility checks
+  embeddingMode: text('embedding_mode'), // 'local', 'external_api', 'deterministic', 'qdrant_only'
   tokenCount: integer('token_count'),
   indexedAt: integer('indexed_at', { mode: 'timestamp' }).notNull(),
 });
@@ -230,6 +277,10 @@ export const indexRuns = sqliteTable('index_runs', {
   profileId: integer('profile_id').references(() => userProfiles.id), // K-1 isolation
   sourceType: text('source_type').notNull(),
   sourceId: integer('source_id'),
+  embeddingProvider: text('embedding_provider'),
+  embeddingModel: text('embedding_model'),
+  embeddingDimensions: integer('embedding_dimensions'),
+  embeddingMode: text('embedding_mode'),
   chunksCreated: integer('chunks_created').default(0),
   status: text('status').notNull().default('pending'), // pending, running, complete, failed
   startedAt: integer('started_at', { mode: 'timestamp' }),
@@ -641,7 +692,7 @@ export const platformJobs = sqliteTable('platform_jobs', {
   userId: integer('user_id').references(() => users.id),
   profileId: integer('profile_id').references(() => userProfiles.id),
   jobType: text('job_type').notNull(), // 'scan_jobs' | 'score_jobs' | 'enrich_jobs' | 'generate_resume' | 'generate_cover_letter' | 'generate_outreach' | 'recompute_analytics' | 'export_report' | 'run_reminders'
-  status: text('status').notNull().default('queued'), // 'queued' | 'running' | 'succeeded' | 'failed' | 'retrying' | 'canceled'
+  status: text('status').notNull().default('queued'), // 'queued' | 'running' | 'processing' | 'succeeded' | 'failed' | 'retrying' | 'canceled'
   payload: text('payload'), // JSON input
   result: text('result'),   // JSON output
   error: text('error'),

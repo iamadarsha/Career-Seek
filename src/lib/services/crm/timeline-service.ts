@@ -2,6 +2,7 @@ import { getDb } from '../../../db';
 import { applicationTimeline, applications } from '../../../db/schema';
 import { eq, desc, and } from 'drizzle-orm';
 import { resolveContext } from '@/lib/platform/identity';
+import { shouldHideValidationJob } from '@/lib/services/documents/asset-filters';
 
 export function addTimelineEvent(options: {
   applicationId: number;
@@ -14,12 +15,17 @@ export function addTimelineEvent(options: {
   const { profileId } = resolveContext();
   
   // Optional: Verify ownership before inserting
-  const app = db.select({ id: applications.id })
+  const app = db.select({
+    id: applications.id,
+    portal: applications.portal,
+    company: applications.company,
+    title: applications.title,
+  })
     .from(applications)
     .where(and(eq(applications.id, options.applicationId), eq(applications.profileId, profileId)))
     .get();
     
-  if (!app) return null; // Or throw
+  if (!app || shouldHideValidationJob(app)) return null; // Or throw
 
   return db.insert(applicationTimeline).values({
     applicationId: options.applicationId,
@@ -51,7 +57,15 @@ export function getTimeline(applicationId: number) {
       eq(applications.profileId, profileId)
     ))
     .orderBy(desc(applicationTimeline.createdAt))
-    .all();
+    .all()
+    .filter((event) => {
+      const app = db.select({
+        portal: applications.portal,
+        company: applications.company,
+        title: applications.title,
+      }).from(applications).where(eq(applications.id, event.applicationId)).get();
+      return !shouldHideValidationJob(app);
+    });
 }
 
 export function getRecentActivity(limit: number = 20) {
@@ -71,7 +85,15 @@ export function getRecentActivity(limit: number = 20) {
     .innerJoin(applications, eq(applicationTimeline.applicationId, applications.id))
     .where(eq(applications.profileId, profileId))
     .orderBy(desc(applicationTimeline.createdAt))
-    .limit(limit)
-    .all();
+    .limit(limit * 3)
+    .all()
+    .filter((event) => {
+      const app = db.select({
+        portal: applications.portal,
+        company: applications.company,
+        title: applications.title,
+      }).from(applications).where(eq(applications.id, event.applicationId)).get();
+      return !shouldHideValidationJob(app);
+    })
+    .slice(0, limit);
 }
-

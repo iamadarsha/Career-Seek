@@ -1,13 +1,16 @@
 'use server';
 
 import { getCommandCenterData } from '@/lib/services/dashboard/command-center';
-import { startJobScan, triggerScoring, generateBriefForJob } from '@/app/discover/actions';
+import { triggerScoring, generateBriefForJob } from '@/app/discover/actions';
 import { resolveContext } from '@/lib/platform/identity';
 import { getDb } from '@/db';
 import { searchProfiles } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
-import { getAppConfig, saveAppConfig } from '@/lib/config';
+import { ONBOARDING_FLOW_VERSION, saveAppConfig } from '@/lib/config';
+import { ScanOrchestrator } from '@/lib/services/scraping/orchestrator';
+import { scoreUnscoredJobs } from '@/lib/services/scoring/engine';
+import { DEFAULT_DISCOVERY_SOURCE_IDS } from '@/lib/services/scraping/source-universe';
 
 export async function fetchCommandCenter() {
   return await getCommandCenterData();
@@ -16,17 +19,31 @@ export async function fetchCommandCenter() {
 export async function updateConfig(apiKey: string) {
   return saveAppConfig({ 
     geminiApiKey: apiKey, 
-    isConfigured: true,
+    isConfigured: false,
+    onboardingVersion: ONBOARDING_FLOW_VERSION,
+    onboardingStage: 'resume',
     onboardingStep: 1 
   });
 }
 
 export async function runQuickScan() {
   const db = getDb();
-  const profile = db.select().from(searchProfiles).where(eq(searchProfiles.isActive, true)).get();
+  const { profileId } = resolveContext();
+  const profile = db.select().from(searchProfiles)
+    .where(and(eq(searchProfiles.profileId, profileId), eq(searchProfiles.isActive, true)))
+    .orderBy(desc(searchProfiles.id))
+    .get();
   if (!profile) return { success: false, error: "No active profile" };
   
-  return await startJobScan(profile.id, ['linkedin', 'naukri', 'wellfound', 'foundit', 'indeed', 'instahyre']);
+  const portals = profile.preferredPortals ? JSON.parse(profile.preferredPortals) : DEFAULT_DISCOVERY_SOURCE_IDS;
+  const scan = await new ScanOrchestrator().runScan(profile.id, portals);
+  const scoredCount = scan.status === 'failed' ? 0 : await scoreUnscoredJobs(profileId);
+  return {
+    success: scan.status !== 'failed',
+    message: scan.status === 'failed' ? 'Scan finished with no usable jobs.' : 'Scan and scoring complete.',
+    scan,
+    scoredCount,
+  };
 }
 
 export async function refreshScoring() {

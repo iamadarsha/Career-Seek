@@ -1,0 +1,440 @@
+{
+  "schema_version": "1.0.0",
+  "last_updated": "2026-04-24",
+  "market": "India",
+  "description": "Provider-level mapping for official-first company career discovery. Public APIs are marked separately from authenticated or page-pattern strategies so callers do not assume every ATS has a supported unauthenticated listing endpoint.",
+  "providers": [
+    {
+      "provider_id": "greenhouse",
+      "display_name": "Greenhouse",
+      "support_level": "public_job_board_api",
+      "official_reference_urls": [
+        "https://developers.greenhouse.io/job-board.html"
+      ],
+      "detection_signals": [
+        "job-boards.greenhouse.io/{board_token}",
+        "boards.greenhouse.io/{board_token}",
+        "boards.greenhouse.io/embed/job_board?for={board_token}",
+        "greenhouse.io jobs links with gh_jid query parameters"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs?content=true",
+          "auth": "none for public GET",
+          "purpose": "List public job posts with title, location, absolute_url, department, office, metadata, and optional content."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs/{job_id}",
+          "auth": "none for public GET",
+          "purpose": "Retrieve one public job post."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://boards.greenhouse.io/embed/job_board?for={board_token}",
+          "auth": "none",
+          "purpose": "HTML fallback for boards that are easier to parse through the hosted embed."
+        }
+      ],
+      "extraction_strategy": [
+        "Derive board_token from Greenhouse host path or embed query.",
+        "Call the Job Board API first and parse jobs[].title, jobs[].location.name, jobs[].absolute_url, jobs[].updated_at, jobs[].departments, and jobs[].offices.",
+        "Filter by India location signals, user role-family titles, and required keywords.",
+        "Fallback to hosted board or custom employer page links only when the API returns no usable jobs."
+      ],
+      "health_check_hints": [
+        "A healthy public board usually returns HTTP 200 JSON with a jobs array and meta object.",
+        "HTTP 404 usually means the board token is wrong or no public board exists.",
+        "HTML embed health can be checked by finding opening links or department sections."
+      ],
+      "known_caveats": [
+        "Some employers expose Greenhouse jobs through custom career URLs, so absolute_url may not be boards.greenhouse.io.",
+        "Prospect or general application posts can appear beside real requisitions and should be filtered.",
+        "Location and department metadata can be sparse or inconsistent.",
+        "Application submission requires authentication and must not be attempted directly from the client."
+      ]
+    },
+    {
+      "provider_id": "lever",
+      "display_name": "Lever",
+      "support_level": "public_postings_api",
+      "official_reference_urls": [
+        "https://github.com/lever/postings-api",
+        "https://help.lever.co/s/article/Lever-Career-Site-Options"
+      ],
+      "detection_signals": [
+        "jobs.lever.co/{site}",
+        "jobs.eu.lever.co/{site}",
+        "api.lever.co/v0/postings/{site}",
+        "api.eu.lever.co/v0/postings/{site}"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://api.lever.co/v0/postings/{site}?mode=json",
+          "auth": "none for published postings",
+          "purpose": "List published public postings on the global Lever instance."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://api.eu.lever.co/v0/postings/{site}?mode=json",
+          "auth": "none for published postings",
+          "purpose": "List published public postings on the EU Lever instance."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://api.lever.co/v0/postings/{site}/{posting_id}",
+          "auth": "none for published postings",
+          "purpose": "Retrieve one public posting."
+        }
+      ],
+      "extraction_strategy": [
+        "Derive site from the first path segment on jobs.lever.co or jobs.eu.lever.co.",
+        "Try global API, then EU API if the source host or first call indicates EU.",
+        "Parse text, hostedUrl, applyUrl, categories.location, categories.team, categories.commitment, workplaceType, and salaryRange when present.",
+        "Filter published postings by role terms, country/city signals, workplace type, and employer ownership."
+      ],
+      "health_check_hints": [
+        "HTTP 200 with an array response is healthy even when the array is empty.",
+        "HTTP 404 usually means the site slug or instance is wrong.",
+        "Respect 429 responses on application endpoints; Career Seek should only link to the hosted apply page."
+      ],
+      "known_caveats": [
+        "The API does not support full-text search across all jobs.",
+        "Only published postings are visible; internal postings are hidden.",
+        "CORS is intentionally limited for browser callers, so server-side fetch is safer.",
+        "Custom application questions are not fully exposed by the public postings API."
+      ]
+    },
+    {
+      "provider_id": "ashby",
+      "display_name": "Ashby",
+      "support_level": "public_job_postings_api",
+      "official_reference_urls": [
+        "https://developers.ashbyhq.com/docs/public-job-posting-api"
+      ],
+      "detection_signals": [
+        "jobs.ashbyhq.com/{job_board_name}",
+        "jobs.ashbyhq.com/{job_board_name}/{job_id}",
+        "api.ashbyhq.com/posting-api/job-board/{job_board_name}"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://api.ashbyhq.com/posting-api/job-board/{job_board_name}?includeCompensation=true",
+          "auth": "none for published public postings",
+          "purpose": "List currently published job postings for an Ashby job board."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://jobs.ashbyhq.com/{job_board_name}/{job_id}",
+          "auth": "none",
+          "purpose": "Hosted job detail page and apply handoff."
+        }
+      ],
+      "extraction_strategy": [
+        "Derive job_board_name from the Ashby hosted job board path.",
+        "Call the official posting API before the hosted page or non-user GraphQL fallback.",
+        "Parse jobs[].title, jobs[].location, jobs[].secondaryLocations, jobs[].department, jobs[].team, jobs[].workplaceType, jobs[].employmentType, jobs[].jobUrl, jobs[].applyUrl, and compensation when present.",
+        "Drop unlisted postings unless they were explicitly imported by URL."
+      ],
+      "health_check_hints": [
+        "A healthy board returns HTTP 200 JSON with apiVersion and jobs.",
+        "Validate that jobUrl or applyUrl stays on jobs.ashbyhq.com before presenting an apply link.",
+        "If the public API fails but the hosted board loads, mark the source degraded and fall back to page extraction."
+      ],
+      "known_caveats": [
+        "Board names can be case-sensitive and may not match the company brand exactly.",
+        "Compensation is optional and only included when requested and configured.",
+        "Unlisted postings may appear in API responses; do not treat them as discoverable unless explicit URL import found them.",
+        "The older non-user GraphQL route is an implementation detail, not the preferred strategy."
+      ]
+    },
+    {
+      "provider_id": "workday",
+      "display_name": "Workday",
+      "support_level": "official_career_page_pattern",
+      "official_reference_urls": [
+        "https://www.workday.com/en-us/company/careers.html"
+      ],
+      "detection_signals": [
+        "{tenant}.wd{number}.myworkdayjobs.com/{career_site}",
+        "{tenant}.myworkdayjobs.com/{career_site}",
+        "{tenant}.myworkdaysite.com/{career_site}",
+        "workdayjobs.com hosted apply links"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://{tenant}.wd{number}.myworkdayjobs.com/{career_site}",
+          "auth": "none for public external career pages",
+          "purpose": "Employer-owned Workday external career site."
+        },
+        {
+          "method": "POST",
+          "url_template": "https://{tenant}.wd{number}.myworkdayjobs.com/wday/cxs/{tenant}/{career_site}/jobs",
+          "auth": "page-context dependent",
+          "purpose": "Tenant-specific candidate-site JSON call when discovered from the official career page; treat as page implementation, not a universal public API contract."
+        }
+      ],
+      "extraction_strategy": [
+        "Start from the employer's official careers link, not a guessed Workday tenant.",
+        "Use the public candidate site, embedded JSON, sitemap, or page-discovered requests for listing data.",
+        "Parse title, requisition id, locations, posted date, job family, remote type, and external apply URL when exposed.",
+        "Keep Workday pages in official-first priority but downgrade to browser extraction when JSON request shape drifts."
+      ],
+      "health_check_hints": [
+        "Check the public career-site URL for HTTP 200 and candidate-site text or app shell scripts.",
+        "Confirm that searches for India or configured city hints return a result count or stable empty state.",
+        "A login prompt, infinite app shell, or 403 should mark the provider degraded and trigger fallback discovery."
+      ],
+      "known_caveats": [
+        "There is no single documented unauthenticated public Workday jobs API that works for every tenant.",
+        "Candidate accounts are tenant-specific and should not be automated.",
+        "Public page request payloads, data-center numbers, locales, and career-site names vary by employer.",
+        "Many Workday postings require repetitive application forms, so Career Seek should deep-link and warn users before apply."
+      ]
+    },
+    {
+      "provider_id": "rippling",
+      "display_name": "Rippling Recruiting",
+      "support_level": "official_career_page_pattern",
+      "official_reference_urls": [
+        "https://www.rippling.com/blog/introducing-rippling-recruiting-2",
+        "https://www.rippling.com/careers/open-roles"
+      ],
+      "detection_signals": [
+        "ats.rippling.com/{company}/jobs/{job_id}",
+        "ats.rippling.com/en-US/{company}/jobs/{job_id}",
+        "rippling.com/careers/open-roles"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://ats.rippling.com/{company}/jobs/{job_id}",
+          "auth": "none for public job detail pages",
+          "purpose": "Hosted public job detail page."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://ats.rippling.com/en-US/{company}/jobs/{job_id}",
+          "auth": "none for public localized job detail pages",
+          "purpose": "Localized hosted public job detail page."
+        }
+      ],
+      "extraction_strategy": [
+        "Use official employer career pages and indexed Rippling job detail URLs as discovery inputs.",
+        "Extract job detail pages conservatively and keep the canonical hosted apply link.",
+        "When an employer board page exposes structured data, parse only fields present in the public page.",
+        "If listing discovery is unavailable, rely on Google for Jobs discovery or manual company import before broad portals."
+      ],
+      "health_check_hints": [
+        "A public job detail should return HTTP 200 and contain the company name, title, and apply action.",
+        "Locale-prefixed and non-locale URLs should both be recognized.",
+        "If only detail URLs are discoverable, mark board_listing_health as unknown and detail_page_health as healthy."
+      ],
+      "known_caveats": [
+        "No stable public jobs listing API is documented for unauthenticated Career Seek use.",
+        "Some pages are detail-only and may not expose a list of all jobs for a company.",
+        "Locale prefixes and company slugs can vary.",
+        "Rippling is also an HRIS and finance platform, so avoid confusing product pages with ATS job pages."
+      ]
+    },
+    {
+      "provider_id": "bamboohr",
+      "display_name": "BambooHR",
+      "support_level": "authenticated_official_api_plus_public_pages",
+      "official_reference_urls": [
+        "https://documentation.bamboohr.com/reference/get-job-summaries",
+        "https://documentation.bamboohr.com/docs/getting-started"
+      ],
+      "detection_signals": [
+        "{companyDomain}.bamboohr.com/careers",
+        "{companyDomain}.bamboohr.com/jobs",
+        "{companyDomain}.bamboohr.com/api/v1/applicant_tracking/jobs"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://{companyDomain}.bamboohr.com/api/v1/applicant_tracking/jobs",
+          "auth": "basic auth with BambooHR API key and ATS permissions",
+          "purpose": "List job opening summaries for an authenticated BambooHR tenant."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://{companyDomain}.bamboohr.com/api/v1/applicant_tracking/applications",
+          "auth": "basic auth with BambooHR API key and ATS permissions",
+          "purpose": "List applications for authenticated owner workflows; not used for public discovery."
+        }
+      ],
+      "extraction_strategy": [
+        "For public discovery, start from the official employer career page and parse public BambooHR job links.",
+        "Use the authenticated official API only when the user or employer supplies a permitted API key.",
+        "Parse postingTitle/title, job id, status, created date, lead, location, employment type, and public posting URL when present.",
+        "Never infer applicant data from public pages."
+      ],
+      "health_check_hints": [
+        "Authenticated API health should distinguish 401 invalid credentials from 403 insufficient ATS permissions.",
+        "Public page health should confirm the employer BambooHR subdomain and visible open positions.",
+        "When credentials are absent, mark api_health as not_configured rather than failed."
+      ],
+      "known_caveats": [
+        "Official job summaries API requires credentials and appropriate ATS settings access.",
+        "Many BambooHR public career pages are simple HTML and may not expose full job metadata.",
+        "Company domains are tenant-specific and can differ from public brand names.",
+        "Application and candidate endpoints are owner workflows, not candidate discovery sources."
+      ]
+    },
+    {
+      "provider_id": "icims",
+      "display_name": "iCIMS",
+      "support_level": "authenticated_job_portal_api_plus_public_pages",
+      "official_reference_urls": [
+        "https://developer-community.icims.com/applications/applicant-tracking/job-portal"
+      ],
+      "detection_signals": [
+        "jobs.icims.com/jobs/{job_id}/{slug}/job",
+        "{company}.icims.com/jobs",
+        "api.icims.com/customers/{customerId}/search/portals/{portalIdOrName}"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://api.icims.com/customers/{customerId}/search/portals/{portalIdOrName}",
+          "auth": "basic auth for official API access",
+          "purpose": "Return jobs matching iCIMS Career Portal filters."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://api.icims.com/customers/{customerId}/search/portals/{portalIdOrName}/filters",
+          "auth": "basic auth for official API access",
+          "purpose": "Retrieve supported portal search filters."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://{company}.icims.com/jobs/{job_id}/{slug}/job",
+          "auth": "none for public job detail pages",
+          "purpose": "Hosted public job detail and apply page."
+        }
+      ],
+      "extraction_strategy": [
+        "Use public iCIMS career portal pages for unauthenticated discovery.",
+        "Use the official Job Portal API only when customerId, portalId, and credentials are configured.",
+        "Parse searchResults[].portalUrl, self, id, updatedDate from the API and hydrate details from public portal pages when needed.",
+        "Cache filters per portal because iCIMS supports portal-specific filter vocabularies."
+      ],
+      "health_check_hints": [
+        "Authenticated API health should verify 200 responses for both portal search and filters.",
+        "Public page health should confirm job detail pages render title, company, and location.",
+        "Track API result cache age separately from page scrape timestamp."
+      ],
+      "known_caveats": [
+        "Official API access normally requires credentials.",
+        "Portal URLs and customer IDs are not always obvious from the public brand.",
+        "Search results can be cached and may lag the live portal.",
+        "Portal filter names and options vary by employer."
+      ]
+    },
+    {
+      "provider_id": "successfactors",
+      "display_name": "SAP SuccessFactors Recruiting",
+      "support_level": "authenticated_official_odata_plus_public_career_site",
+      "official_reference_urls": [
+        "https://help.sap.com/docs/successfactors-platform/sap-successfactors-api-reference-guide-odata-v2/jobrequisition",
+        "https://help.sap.com/docs/successfactors-recruiting/recruiting-in-sap-successfactors-test-script/post-job-on-external-career-site"
+      ],
+      "detection_signals": [
+        "career site builder pages hosted by SAP SuccessFactors",
+        "sapsf.com career links",
+        "successfactors.com career links",
+        "odata/v2/JobRequisition for authenticated integrations"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://{api_server}/odata/v2/JobRequisition",
+          "auth": "authenticated OData user with Recruiting permissions",
+          "purpose": "Query job requisition data for an authorized SuccessFactors tenant."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://{api_server}/odata/v2/JobRequisition('{jobReqId}')",
+          "auth": "authenticated OData user with Recruiting permissions",
+          "purpose": "Retrieve one job requisition by id."
+        },
+        {
+          "method": "GET",
+          "url_template": "official employer external career site URL",
+          "auth": "none for public external postings when configured",
+          "purpose": "Candidate-facing external career site posted from Recruiting Management."
+        }
+      ],
+      "extraction_strategy": [
+        "For public discovery, start from the employer official career site and parse public external postings.",
+        "Use OData JobRequisition only for authorized tenant integrations.",
+        "Normalize requisition status, locale-specific titles, jobReqId, location, department, posting status, and external apply URL.",
+        "Prefer the canonical external career site URL over copied portal content."
+      ],
+      "health_check_hints": [
+        "Authenticated OData health should verify metadata access and query permission for JobRequisition.",
+        "Public career site health should check for external search results and language/locale availability.",
+        "Permission errors should be categorized separately from empty public postings."
+      ],
+      "known_caveats": [
+        "OData fields vary by customer template and field-level permissions.",
+        "External career site visibility depends on whether requisitions are posted externally.",
+        "Language and locale mismatches can hide public postings.",
+        "SuccessFactors public pages can be heavily customized and may require browser rendering."
+      ]
+    },
+    {
+      "provider_id": "custom_unknown",
+      "display_name": "Custom or Unknown Employer Career Page",
+      "support_level": "official_page_only",
+      "official_reference_urls": [],
+      "detection_signals": [
+        "careers, jobs, join-us, work-with-us, opportunities, openings, or recruitment paths on employer-owned domains",
+        "structured data containing JobPosting schema.org markup",
+        "links to known ATS hosts without enough information to identify provider"
+      ],
+      "official_endpoints_or_patterns": [
+        {
+          "method": "GET",
+          "url_template": "https://{employer_domain}/careers",
+          "auth": "none unless employer gates the page",
+          "purpose": "Employer-owned custom career page."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://{employer_domain}/jobs",
+          "auth": "none unless employer gates the page",
+          "purpose": "Common employer-owned jobs path."
+        },
+        {
+          "method": "GET",
+          "url_template": "https://{employer_domain}/sitemap.xml",
+          "auth": "none when public",
+          "purpose": "Discover public job detail URLs on employer-owned domains."
+        }
+      ],
+      "extraction_strategy": [
+        "Resolve from a curated company source or user-provided official URL.",
+        "Parse schema.org JobPosting JSON-LD first, then visible job cards and links.",
+        "Use conservative title, location, company, posted date, apply URL, and description extraction.",
+        "Record unknown provider and extraction confidence so results can be validated manually."
+      ],
+      "health_check_hints": [
+        "Check employer-domain ownership, HTTP 200, and visible career or job text.",
+        "Mark as gated if login, CAPTCHA, or regional blocking is detected.",
+        "Track selector drift and no-job states separately."
+      ],
+      "known_caveats": [
+        "Custom pages have no shared schema and often drift.",
+        "Single-page apps may require browser rendering.",
+        "Some pages list teams without live openings.",
+        "Manual validation is required before treating a new custom source as stable."
+      ]
+    }
+  ]
+}

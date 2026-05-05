@@ -7,8 +7,9 @@
  * for the AI Coach workspace.
  */
 
-import { indexDocuments, getIndexStatus, clearJobChunks, clearProfileChunks } from '../../lib/services/coach/embedder';
-import { generateGroundedAnswer, getSuggestedPrompts } from '../../lib/services/coach/answer';
+import { indexDocuments, getIndexStatus, isIndexStale } from '../../lib/services/coach/embedder';
+import { getSuggestedPrompts } from '../../lib/services/coach/answer';
+import { answerWithCoachRag } from '../../lib/services/coach/rag-engine';
 import { RetrievalScope } from '../../lib/services/coach/retriever';
 import {
   createThread,
@@ -30,7 +31,9 @@ import {
   documentChunks,
   masterProfiles,
 } from '../../db/schema';
-import { eq, desc, isNull } from 'drizzle-orm';
+import { and, eq, desc, isNull } from 'drizzle-orm';
+import { resolveContext } from '../../lib/platform/identity';
+import { shouldHideValidationJob } from '../../lib/services/documents/asset-filters';
 
 // ── Index management ───────────────────────────────────────────────────────
 
@@ -51,12 +54,10 @@ export async function getCoachIndexStatus() {
 }
 
 export async function reindexProfile() {
-  clearProfileChunks();
   return await indexDocuments({ includeProfile: true, forceReindex: true });
 }
 
 export async function reindexJob(scoredJobId: number) {
-  clearJobChunks(scoredJobId);
   return await indexDocuments({ scoredJobId, forceReindex: true });
 }
 
@@ -112,36 +113,58 @@ export async function askCoach(options: {
   const scope = (options.scope || thread.scope || 'job_and_profile') as RetrievalScope;
   const answerMode = options.answerMode || 'concise';
 
-  // 1. Save user message
-  addUserMessage(options.threadId, options.question);
-
-  // 2. Get conversation context
+  // 1. Get conversation context before saving this turn so the prompt is not duplicated.
   const history = getConversationContext(options.threadId, 6);
 
-  // 3. Ensure index is fresh
+  // 2. Save user message
+  addUserMessage(options.threadId, options.question);
+
+  // 3. Ensure index exists for the active profile and selected job.
   const db = getDb();
-  const existingChunks = db.select().from(documentChunks).limit(1).get();
-  if (!existingChunks) {
-    // Auto-index if empty
+  const { profileId } = resolveContext();
+  const existingProfileChunks = db.select().from(documentChunks)
+    .where(and(eq(documentChunks.profileId, profileId), isNull(documentChunks.scoredJobId)))
+    .limit(1).get();
+  const existingJobChunks = thread.scoredJobId
+    ? db.select().from(documentChunks)
+      .where(and(eq(documentChunks.profileId, profileId), eq(documentChunks.scoredJobId, thread.scoredJobId)))
+      .limit(1).get()
+    : null;
+  const staleIndex = isIndexStale({ scoredJobId: thread.scoredJobId || undefined });
+  if (!existingProfileChunks || (thread.scoredJobId && !existingJobChunks) || staleIndex) {
     await indexDocuments({
       includeProfile: true,
       scoredJobId: thread.scoredJobId || undefined,
+      forceReindex: staleIndex,
     });
   }
 
   // 4. Generate grounded answer
-  const response = await generateGroundedAnswer(
-    options.question,
+  const response = await answerWithCoachRag({
+    question: options.question,
     scope,
-    thread.scoredJobId,
-    history,
+    scoredJobId: thread.scoredJobId,
+    conversationHistory: history,
     answerMode,
-  );
+  });
+  const groundedAnswer = {
+    answer: response.answer,
+    confidenceLevel: response.confidence,
+    reasoning: response.mode === 'generated'
+      ? `Generated from ${response.diagnostics.sourceCount} local source(s).`
+      : response.caveats[0],
+    sourceReferences: response.sourceReferences.map((ref) => ({
+      chunkIndex: ref.citationIndex,
+      relevance: ref.relevance,
+    })),
+    suggestedFollowUps: response.suggestedFollowUps,
+    caveats: response.caveats,
+  };
 
   // 5. Persist assistant message with sources
   const assistantMsg = addAssistantMessage(
     options.threadId,
-    response.answer,
+    groundedAnswer,
     response.sources,
     answerMode,
   );
@@ -157,17 +180,19 @@ export async function askCoach(options: {
     message: {
       id: assistantMsg.id,
       role: 'assistant',
-      content: response.answer.answer,
-      confidenceLevel: response.answer.confidenceLevel,
-      reasoning: response.answer.reasoning,
-      suggestedFollowUps: response.answer.suggestedFollowUps,
-      caveats: response.answer.caveats,
+      content: groundedAnswer.answer,
+      confidenceLevel: groundedAnswer.confidenceLevel,
+      reasoning: groundedAnswer.reasoning,
+      suggestedFollowUps: groundedAnswer.suggestedFollowUps,
+      caveats: groundedAnswer.caveats,
       sources,
     },
     meta: {
-      retrievalTimeMs: response.retrievalTimeMs,
-      generationTimeMs: response.generationTimeMs,
+      retrievalTimeMs: response.diagnostics.retrievalTimeMs,
+      generationTimeMs: response.diagnostics.generationTimeMs,
       sourcesUsed: response.sources.length,
+      mode: response.mode,
+      usedCloudGeneration: response.diagnostics.usedCloudGeneration,
     },
   };
 }
@@ -176,25 +201,28 @@ export async function askCoach(options: {
 
 export async function getCoachSuggestions(scoredJobId?: number) {
   const db = getDb();
+  const { profileId } = resolveContext();
 
   let hasJob = false;
   let hasResume = false;
   let hasAtsReport = false;
 
   if (scoredJobId) {
-    hasJob = !!db.select().from(scoredJobs).where(eq(scoredJobs.id, scoredJobId)).get();
+    hasJob = !!db.select().from(scoredJobs)
+      .where(and(eq(scoredJobs.id, scoredJobId), eq(scoredJobs.profileId, profileId)))
+      .get();
     
     hasResume = !!db.select().from(documentAssets)
-      .where(eq(documentAssets.scoredJobId, scoredJobId))
+      .where(and(eq(documentAssets.scoredJobId, scoredJobId), eq(documentAssets.profileId, profileId)))
       .get();
     
     const atsReport = db.select().from(documentAssets)
-      .where(eq(documentAssets.scoredJobId, scoredJobId))
+      .where(and(eq(documentAssets.scoredJobId, scoredJobId), eq(documentAssets.profileId, profileId)))
       .all()
       .find(a => a.type === 'ats_report');
     hasAtsReport = !!atsReport;
   } else {
-    hasResume = !!db.select().from(masterProfiles).limit(1).get();
+    hasResume = !!db.select().from(masterProfiles).where(eq(masterProfiles.profileId, profileId)).limit(1).get();
   }
 
   return getSuggestedPrompts({ hasJob, hasResume, hasAtsReport });
@@ -204,19 +232,24 @@ export async function getCoachSuggestions(scoredJobId?: number) {
 
 export async function getAvailableJobs() {
   const db = getDb();
+  const { profileId } = resolveContext();
   
-  const jobs = db.select({
+  const rows = db.select({
     scoredJobId: scoredJobs.id,
     title: normalizedJobs.title,
     company: normalizedJobs.company,
+    portal: normalizedJobs.portal,
     tier: scoredJobs.tier,
     score: scoredJobs.score,
   })
     .from(scoredJobs)
     .innerJoin(normalizedJobs, eq(scoredJobs.normalizedJobId, normalizedJobs.id))
+    .where(eq(scoredJobs.profileId, profileId))
     .orderBy(desc(scoredJobs.score))
     .limit(50)
     .all();
+
+  const jobs = rows.filter((job) => !shouldHideValidationJob(job));
 
   return { success: true, jobs };
 }

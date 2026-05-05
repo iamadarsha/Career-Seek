@@ -9,6 +9,7 @@ import { computeWeeklyReview, saveWeeklyReview, getLatestWeeklyReview } from '@/
 import { createExperiment, updateExperiment, linkToExperiment, listExperiments, getExperiment, computeExperimentMetrics } from '@/lib/services/analytics/experiment-service';
 import { exportReport, type ReportOptions } from '@/lib/services/analytics/report-export-service';
 import { queryEvents } from '@/lib/services/analytics/event-service';
+import { computeMarketInsightSnapshot } from '@/lib/services/analytics/market-insights-service';
 
 // ─── Funnel ───────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,15 @@ export async function actionGetSearchSummary() {
   try {
     const summary = getSearchSummary();
     return { success: true as const, summary };
+  } catch (err) {
+    return { success: false as const, error: String(err) };
+  }
+}
+
+export async function actionGetMarketInsights() {
+  try {
+    const snapshot = computeMarketInsightSnapshot();
+    return { success: true as const, snapshot };
   } catch (err) {
     return { success: false as const, error: String(err) };
   }

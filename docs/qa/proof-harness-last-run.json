@@ -1,0 +1,883 @@
+{
+  "success": true,
+  "startedAt": "2026-04-30T08:48:12.802Z",
+  "finishedAt": "2026-04-30T08:56:39.862Z",
+  "dataRoot": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z",
+  "reportPath": "/Users/debadritamukhopadhyay/Documents/Career Seek/docs/qa/proof-harness-last-run.json",
+  "aiMode": "auto",
+  "coachMode": "auto",
+  "childTimeoutMs": 240000,
+  "candidateCount": 4,
+  "completed": 4,
+  "passed": 4,
+  "failed": 0,
+  "results": [
+    {
+      "success": true,
+      "candidate": {
+        "slug": "sde-4y",
+        "label": "4-year SDE",
+        "name": "Rohan Nair",
+        "target": "Software Development Engineer II"
+      },
+      "dataDir": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y",
+      "startedAt": "2026-04-30T08:48:12.802Z",
+      "finishedAt": "2026-04-30T08:50:28.384Z",
+      "userId": 1,
+      "profileId": 1,
+      "warnings": [],
+      "gemini": {
+        "attempted": true,
+        "source": "env:GEMINI_API_KEY",
+        "success": true,
+        "category": "valid",
+        "message": "Gemini key validated."
+      },
+      "resumeParsing": {
+        "uploadId": 1,
+        "path": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/uploads/qa-fixtures/sde-4y-resume.docx",
+        "characterCount": 2343,
+        "wordCount": 306,
+        "confidence": 92,
+        "issues": [],
+        "warnings": []
+      },
+      "profileExtraction": {
+        "source": "gemini_extract_profile",
+        "masterProfileId": 1,
+        "analysis": {
+          "confidence": 98,
+          "needsClarification": false,
+          "clarificationQuestionCount": 0
+        }
+      },
+      "searchProfile": {
+        "id": 1,
+        "title": "Software Development Engineer II",
+        "locations": [
+          "Bengaluru",
+          "Hyderabad",
+          "Remote India"
+        ],
+        "workModel": "hybrid"
+      },
+      "scans": {
+        "validation": {
+          "scanId": 1,
+          "totalJobsFound": 6,
+          "failedPortals": 1,
+          "status": "partial"
+        },
+        "qaSeedScanId": 2,
+        "portalRuns": [
+          {
+            "portal": "validation_seed",
+            "status": "complete",
+            "jobsFound": 6,
+            "error": null
+          },
+          {
+            "portal": "validation_fail",
+            "status": "failed",
+            "jobsFound": 0,
+            "error": "{\"code\":\"selector_not_found\",\"message\":\"selector_not_found: simulated selector drift for validation\"}"
+          },
+          {
+            "portal": "qa_seed",
+            "status": "complete",
+            "jobsFound": 1,
+            "error": null
+          }
+        ]
+      },
+      "scoring": {
+        "scoredCount": 3,
+        "selectedScoredJobId": 3,
+        "selectedNormalizedJobId": 3,
+        "selectedScore": 84,
+        "selectedTier": "A"
+      },
+      "jobActions": {
+        "brief": {
+          "success": true,
+          "briefSummaryLength": 357
+        },
+        "saved": {
+          "success": true,
+          "status": "saved",
+          "saved": true,
+          "applied": false
+        },
+        "applied": {
+          "success": true,
+          "status": "applied",
+          "saved": false,
+          "applied": true
+        }
+      },
+      "documents": {
+        "resume": {
+          "success": true,
+          "resumeId": 1,
+          "pdfResumeId": 2,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/output/resumes/resume_Nimbus_Payments_Platform_Software_Development_Engineer_II_job_3_v1_1777538953088.docx",
+          "pdfPath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/output/resumes/resume_Nimbus_Payments_Platform_Software_Development_Engineer_II_job_3_v1_1777538953089.pdf",
+          "atsScore": 58
+        },
+        "coverLetter": {
+          "success": true,
+          "id": 4,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/output/cover-letters/cover_letter_Nimbus_Payments_Platform_3_1777538983346.txt",
+          "contentLength": 1766
+        },
+        "outreach": {
+          "success": true,
+          "id": 5,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/output/cover-letters/outreach-notes/outreach_note_Nimbus_Payments_Platform_3_1777538990911.txt",
+          "contentLength": 429
+        },
+        "assetCount": 5,
+        "assetTypes": {
+          "resume": 1,
+          "resume_pdf": 1,
+          "ats_report": 1,
+          "cover_letter": 1,
+          "outreach_note": 1
+        }
+      },
+      "appState": {
+        "applications": [
+          {
+            "id": 1,
+            "scoredJobId": 3,
+            "status": "applied",
+            "title": "Software Development Engineer II",
+            "company": "Nimbus Payments Platform"
+          }
+        ],
+        "commandCenter": {
+          "stats": {
+            "actionableJobs": 2,
+            "applyToday": 2,
+            "applyIn3Days": 1,
+            "totalScraped": 3,
+            "portalsActive": 2,
+            "averageScore": 61
+          },
+          "priorityQueueLength": 2,
+          "latestJobsLength": 2,
+          "portalHealth": [
+            {
+              "portal": "qa_seed",
+              "status": "complete",
+              "jobsFound": 1
+            }
+          ],
+          "documentsGenerated": 5
+        }
+      },
+      "coach": {
+        "generatedChunkCount": 46,
+        "suggestions": [
+          "How does my background fit this role?",
+          "What are the biggest risks in my application?",
+          "What interview questions should I prepare for?",
+          "What are the strongest signals in this JD?",
+          "Which projects should I emphasize?",
+          "How should I explain my career trajectory?",
+          "Which ATS keywords am I still weak on?",
+          "Should I regenerate my resume?"
+        ],
+        "index": {
+          "chunksCreated": 46,
+          "chunksSkipped": 0
+        },
+        "threadId": 1,
+        "answer": {
+          "success": true,
+          "confidenceLevel": "high",
+          "sourcesUsed": 8,
+          "answerLength": 1881
+        }
+      },
+      "counts": {
+        "normalizedJobs": 3,
+        "scoredJobs": 3,
+        "applications": 1,
+        "documentAssets": 5,
+        "jdAnalyses": 1,
+        "aiRequestLogs": 9
+      },
+      "commands": [
+        {
+          "command": "/usr/local/bin/node scripts/db-init.mjs",
+          "stdoutTail": "Bootstrapping JobHunt India local environment...\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/config\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/db\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/cache\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/logs\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/output\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/output/resumes\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/output/cover-letters\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/output/outreach\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/uploads\nCreated initial config at: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/config/settings.json\nBootstrap complete.\n",
+          "stderrTail": ""
+        },
+        {
+          "command": "/usr/local/bin/node scripts/db-schema-push.mjs",
+          "stdoutTail": "  job_duplicates\n  job_enrichments\n  master_profiles\n  message_sources\n  normalized_jobs\n  notification_preferences\n  notifications\n  platform_job_logs\n  platform_jobs\n  role_family_pack_registry\n  scan_portal_runs\n  scans\n  scheduled_tasks\n  scored_jobs\n  search_expansions\n  search_profiles\n  search_queries\n  source_registry\n  sqlite_sequence\n  uploaded_resumes\n  user_profiles\n  users\n  weekly_reviews\n",
+          "stderrTail": ""
+        },
+        {
+          "command": "/usr/local/bin/node scripts/k1-bootstrap-migration.mjs",
+          "stdoutTail": "Step 1: Adding ownership columns (ignoring duplicates)...\n\nStep 2: Bootstrap user...\n  Bootstrap user created (id=1)\n\nStep 3: Default profile...\n  Default profile created (id=1)\n\nStep 4: Backfilling profile_id...\n\nStep 5: Backfilling user_id...\n\nStep 5b: Backfilling profile_id on dual-ownership tables...\n\n✓ K-1 bootstrap migration complete\n  Bootstrap user id:    1\n  Default profile id:   1\n\nThe app will run in single-user mode using these IDs.\nTo add real auth, implement K-6 and swap resolveContext() in src/lib/platform/identity.ts.\n",
+          "stderrTail": ""
+        }
+      ],
+      "reportPath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/sde-4y/logs/qa-proof-report.json"
+    },
+    {
+      "success": true,
+      "candidate": {
+        "slug": "pm-4y",
+        "label": "4-year PM",
+        "name": "Maya Iyer",
+        "target": "Product Manager"
+      },
+      "dataDir": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y",
+      "startedAt": "2026-04-30T08:50:29.055Z",
+      "finishedAt": "2026-04-30T08:52:35.094Z",
+      "userId": 1,
+      "profileId": 1,
+      "warnings": [],
+      "gemini": {
+        "attempted": true,
+        "source": "env:GEMINI_API_KEY",
+        "success": true,
+        "category": "valid",
+        "message": "Gemini key validated."
+      },
+      "resumeParsing": {
+        "uploadId": 1,
+        "path": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/uploads/qa-fixtures/pm-4y-resume.docx",
+        "characterCount": 2260,
+        "wordCount": 289,
+        "confidence": 92,
+        "issues": [],
+        "warnings": []
+      },
+      "profileExtraction": {
+        "source": "gemini_extract_profile",
+        "masterProfileId": 1,
+        "analysis": {
+          "confidence": 98,
+          "needsClarification": false,
+          "clarificationQuestionCount": 0
+        }
+      },
+      "searchProfile": {
+        "id": 1,
+        "title": "Product Manager",
+        "locations": [
+          "Mumbai",
+          "Bengaluru",
+          "Remote India"
+        ],
+        "workModel": "remote"
+      },
+      "scans": {
+        "validation": {
+          "scanId": 1,
+          "totalJobsFound": 6,
+          "failedPortals": 1,
+          "status": "partial"
+        },
+        "qaSeedScanId": 2,
+        "portalRuns": [
+          {
+            "portal": "validation_seed",
+            "status": "complete",
+            "jobsFound": 6,
+            "error": null
+          },
+          {
+            "portal": "validation_fail",
+            "status": "failed",
+            "jobsFound": 0,
+            "error": "{\"code\":\"selector_not_found\",\"message\":\"selector_not_found: simulated selector drift for validation\"}"
+          },
+          {
+            "portal": "qa_seed",
+            "status": "complete",
+            "jobsFound": 1,
+            "error": null
+          }
+        ]
+      },
+      "scoring": {
+        "scoredCount": 3,
+        "selectedScoredJobId": 3,
+        "selectedNormalizedJobId": 3,
+        "selectedScore": 91,
+        "selectedTier": "A"
+      },
+      "jobActions": {
+        "brief": {
+          "success": true,
+          "briefSummaryLength": 340
+        },
+        "saved": {
+          "success": true,
+          "status": "saved",
+          "saved": true,
+          "applied": false
+        },
+        "applied": {
+          "success": true,
+          "status": "applied",
+          "saved": false,
+          "applied": true
+        }
+      },
+      "documents": {
+        "resume": {
+          "success": true,
+          "resumeId": 1,
+          "pdfResumeId": 2,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/output/resumes/resume_Orbit_Growth_Cloud_Product_Manager_Growth_SaaS_job_3_v1_1777539082472.docx",
+          "pdfPath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/output/resumes/resume_Orbit_Growth_Cloud_Product_Manager_Growth_SaaS_job_3_v1_1777539082473.pdf",
+          "atsScore": 54
+        },
+        "coverLetter": {
+          "success": true,
+          "id": 4,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/output/cover-letters/cover_letter_Orbit_Growth_Cloud_3_1777539109637.txt",
+          "contentLength": 1732
+        },
+        "outreach": {
+          "success": true,
+          "id": 5,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/output/cover-letters/outreach-notes/outreach_note_Orbit_Growth_Cloud_3_1777539115931.txt",
+          "contentLength": 426
+        },
+        "assetCount": 5,
+        "assetTypes": {
+          "resume": 1,
+          "resume_pdf": 1,
+          "ats_report": 1,
+          "cover_letter": 1,
+          "outreach_note": 1
+        }
+      },
+      "appState": {
+        "applications": [
+          {
+            "id": 1,
+            "scoredJobId": 3,
+            "status": "applied",
+            "title": "Product Manager - Growth SaaS",
+            "company": "Orbit Growth Cloud"
+          }
+        ],
+        "commandCenter": {
+          "stats": {
+            "actionableJobs": 2,
+            "applyToday": 2,
+            "applyIn3Days": 2,
+            "totalScraped": 3,
+            "portalsActive": 2,
+            "averageScore": 68
+          },
+          "priorityQueueLength": 2,
+          "latestJobsLength": 2,
+          "portalHealth": [
+            {
+              "portal": "qa_seed",
+              "status": "complete",
+              "jobsFound": 1
+            }
+          ],
+          "documentsGenerated": 5
+        }
+      },
+      "coach": {
+        "generatedChunkCount": 46,
+        "suggestions": [
+          "How does my background fit this role?",
+          "What are the biggest risks in my application?",
+          "What interview questions should I prepare for?",
+          "What are the strongest signals in this JD?",
+          "Which projects should I emphasize?",
+          "How should I explain my career trajectory?",
+          "Which ATS keywords am I still weak on?",
+          "Should I regenerate my resume?"
+        ],
+        "index": {
+          "chunksCreated": 46,
+          "chunksSkipped": 0
+        },
+        "threadId": 1,
+        "answer": {
+          "success": true,
+          "confidenceLevel": "high",
+          "sourcesUsed": 8,
+          "answerLength": 1733
+        }
+      },
+      "counts": {
+        "normalizedJobs": 3,
+        "scoredJobs": 3,
+        "applications": 1,
+        "documentAssets": 5,
+        "jdAnalyses": 1,
+        "aiRequestLogs": 9
+      },
+      "commands": [
+        {
+          "command": "/usr/local/bin/node scripts/db-init.mjs",
+          "stdoutTail": "Bootstrapping JobHunt India local environment...\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/config\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/db\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/cache\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/logs\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/output\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/output/resumes\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/output/cover-letters\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/output/outreach\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/uploads\nCreated initial config at: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/config/settings.json\nBootstrap complete.\n",
+          "stderrTail": ""
+        },
+        {
+          "command": "/usr/local/bin/node scripts/db-schema-push.mjs",
+          "stdoutTail": "  job_duplicates\n  job_enrichments\n  master_profiles\n  message_sources\n  normalized_jobs\n  notification_preferences\n  notifications\n  platform_job_logs\n  platform_jobs\n  role_family_pack_registry\n  scan_portal_runs\n  scans\n  scheduled_tasks\n  scored_jobs\n  search_expansions\n  search_profiles\n  search_queries\n  source_registry\n  sqlite_sequence\n  uploaded_resumes\n  user_profiles\n  users\n  weekly_reviews\n",
+          "stderrTail": ""
+        },
+        {
+          "command": "/usr/local/bin/node scripts/k1-bootstrap-migration.mjs",
+          "stdoutTail": "Step 1: Adding ownership columns (ignoring duplicates)...\n\nStep 2: Bootstrap user...\n  Bootstrap user created (id=1)\n\nStep 3: Default profile...\n  Default profile created (id=1)\n\nStep 4: Backfilling profile_id...\n\nStep 5: Backfilling user_id...\n\nStep 5b: Backfilling profile_id on dual-ownership tables...\n\n✓ K-1 bootstrap migration complete\n  Bootstrap user id:    1\n  Default profile id:   1\n\nThe app will run in single-user mode using these IDs.\nTo add real auth, implement K-6 and swap resolveContext() in src/lib/platform/identity.ts.\n",
+          "stderrTail": ""
+        }
+      ],
+      "reportPath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/pm-4y/logs/qa-proof-report.json"
+    },
+    {
+      "success": true,
+      "candidate": {
+        "slug": "uiux-designer",
+        "label": "UI/UX designer",
+        "name": "Tara Sen",
+        "target": "Product Designer UI UX"
+      },
+      "dataDir": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer",
+      "startedAt": "2026-04-30T08:52:35.401Z",
+      "finishedAt": "2026-04-30T08:54:50.819Z",
+      "userId": 1,
+      "profileId": 1,
+      "warnings": [],
+      "gemini": {
+        "attempted": true,
+        "source": "env:GEMINI_API_KEY",
+        "success": true,
+        "category": "valid",
+        "message": "Gemini key validated."
+      },
+      "resumeParsing": {
+        "uploadId": 1,
+        "path": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/uploads/qa-fixtures/uiux-designer-resume.docx",
+        "characterCount": 2336,
+        "wordCount": 306,
+        "confidence": 92,
+        "issues": [],
+        "warnings": []
+      },
+      "profileExtraction": {
+        "source": "gemini_extract_profile",
+        "masterProfileId": 1,
+        "analysis": {
+          "confidence": 98,
+          "needsClarification": false,
+          "clarificationQuestionCount": 0
+        }
+      },
+      "searchProfile": {
+        "id": 1,
+        "title": "Product Designer UI UX",
+        "locations": [
+          "Delhi NCR",
+          "Bengaluru",
+          "Remote India"
+        ],
+        "workModel": "remote"
+      },
+      "scans": {
+        "validation": {
+          "scanId": 1,
+          "totalJobsFound": 6,
+          "failedPortals": 1,
+          "status": "partial"
+        },
+        "qaSeedScanId": 2,
+        "portalRuns": [
+          {
+            "portal": "validation_seed",
+            "status": "complete",
+            "jobsFound": 6,
+            "error": null
+          },
+          {
+            "portal": "validation_fail",
+            "status": "failed",
+            "jobsFound": 0,
+            "error": "{\"code\":\"selector_not_found\",\"message\":\"selector_not_found: simulated selector drift for validation\"}"
+          },
+          {
+            "portal": "qa_seed",
+            "status": "complete",
+            "jobsFound": 1,
+            "error": null
+          }
+        ]
+      },
+      "scoring": {
+        "scoredCount": 3,
+        "selectedScoredJobId": 3,
+        "selectedNormalizedJobId": 3,
+        "selectedScore": 78,
+        "selectedTier": "B"
+      },
+      "jobActions": {
+        "brief": {
+          "success": true,
+          "briefSummaryLength": 335
+        },
+        "saved": {
+          "success": true,
+          "status": "saved",
+          "saved": true,
+          "applied": false
+        },
+        "applied": {
+          "success": true,
+          "status": "applied",
+          "saved": false,
+          "applied": true
+        }
+      },
+      "documents": {
+        "resume": {
+          "success": true,
+          "resumeId": 1,
+          "pdfResumeId": 2,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/output/resumes/resume_Luma_Health_Design_Product_Designer_UI_UX_job_3_v1_1777539222195.docx",
+          "pdfPath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/output/resumes/resume_Luma_Health_Design_Product_Designer_UI_UX_job_3_v1_1777539222196.pdf",
+          "atsScore": 39
+        },
+        "coverLetter": {
+          "success": true,
+          "id": 4,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/output/cover-letters/cover_letter_Luma_Health_Design_3_1777539248125.txt",
+          "contentLength": 1690
+        },
+        "outreach": {
+          "success": true,
+          "id": 5,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/output/cover-letters/outreach-notes/outreach_note_Luma_Health_Design_3_1777539256699.txt",
+          "contentLength": 450
+        },
+        "assetCount": 5,
+        "assetTypes": {
+          "resume": 1,
+          "resume_pdf": 1,
+          "ats_report": 1,
+          "cover_letter": 1,
+          "outreach_note": 1
+        }
+      },
+      "appState": {
+        "applications": [
+          {
+            "id": 1,
+            "scoredJobId": 3,
+            "status": "applied",
+            "title": "Product Designer - UI/UX",
+            "company": "Luma Health Design"
+          }
+        ],
+        "commandCenter": {
+          "stats": {
+            "actionableJobs": 2,
+            "applyToday": 2,
+            "applyIn3Days": 1,
+            "totalScraped": 3,
+            "portalsActive": 2,
+            "averageScore": 61
+          },
+          "priorityQueueLength": 2,
+          "latestJobsLength": 2,
+          "portalHealth": [
+            {
+              "portal": "qa_seed",
+              "status": "complete",
+              "jobsFound": 1
+            }
+          ],
+          "documentsGenerated": 5
+        }
+      },
+      "coach": {
+        "generatedChunkCount": 46,
+        "suggestions": [
+          "How does my background fit this role?",
+          "What are the biggest risks in my application?",
+          "What interview questions should I prepare for?",
+          "What are the strongest signals in this JD?",
+          "Which projects should I emphasize?",
+          "How should I explain my career trajectory?",
+          "Which ATS keywords am I still weak on?",
+          "Should I regenerate my resume?"
+        ],
+        "index": {
+          "chunksCreated": 46,
+          "chunksSkipped": 0
+        },
+        "threadId": 1,
+        "answer": {
+          "success": true,
+          "confidenceLevel": "high",
+          "sourcesUsed": 8,
+          "answerLength": 1689
+        }
+      },
+      "counts": {
+        "normalizedJobs": 3,
+        "scoredJobs": 3,
+        "applications": 1,
+        "documentAssets": 5,
+        "jdAnalyses": 1,
+        "aiRequestLogs": 9
+      },
+      "commands": [
+        {
+          "command": "/usr/local/bin/node scripts/db-init.mjs",
+          "stdoutTail": "Bootstrapping JobHunt India local environment...\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/config\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/db\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/cache\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/logs\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/output\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/output/resumes\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/output/cover-letters\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/output/outreach\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/uploads\nCreated initial config at: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/config/settings.json\nBootstrap complete.\n",
+          "stderrTail": ""
+        },
+        {
+          "command": "/usr/local/bin/node scripts/db-schema-push.mjs",
+          "stdoutTail": "  job_duplicates\n  job_enrichments\n  master_profiles\n  message_sources\n  normalized_jobs\n  notification_preferences\n  notifications\n  platform_job_logs\n  platform_jobs\n  role_family_pack_registry\n  scan_portal_runs\n  scans\n  scheduled_tasks\n  scored_jobs\n  search_expansions\n  search_profiles\n  search_queries\n  source_registry\n  sqlite_sequence\n  uploaded_resumes\n  user_profiles\n  users\n  weekly_reviews\n",
+          "stderrTail": ""
+        },
+        {
+          "command": "/usr/local/bin/node scripts/k1-bootstrap-migration.mjs",
+          "stdoutTail": "Step 1: Adding ownership columns (ignoring duplicates)...\n\nStep 2: Bootstrap user...\n  Bootstrap user created (id=1)\n\nStep 3: Default profile...\n  Default profile created (id=1)\n\nStep 4: Backfilling profile_id...\n\nStep 5: Backfilling user_id...\n\nStep 5b: Backfilling profile_id on dual-ownership tables...\n\n✓ K-1 bootstrap migration complete\n  Bootstrap user id:    1\n  Default profile id:   1\n\nThe app will run in single-user mode using these IDs.\nTo add real auth, implement K-6 and swap resolveContext() in src/lib/platform/identity.ts.\n",
+          "stderrTail": ""
+        }
+      ],
+      "reportPath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/uiux-designer/logs/qa-proof-report.json"
+    },
+    {
+      "success": true,
+      "candidate": {
+        "slug": "hr-4y",
+        "label": "HR",
+        "name": "Kabir Sharma",
+        "target": "HR Generalist HR Business Partner"
+      },
+      "dataDir": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y",
+      "startedAt": "2026-04-30T08:54:51.176Z",
+      "finishedAt": "2026-04-30T08:56:39.744Z",
+      "userId": 1,
+      "profileId": 1,
+      "warnings": [],
+      "gemini": {
+        "attempted": true,
+        "source": "env:GEMINI_API_KEY",
+        "success": true,
+        "category": "valid",
+        "message": "Gemini key validated."
+      },
+      "resumeParsing": {
+        "uploadId": 1,
+        "path": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/uploads/qa-fixtures/hr-4y-resume.docx",
+        "characterCount": 2443,
+        "wordCount": 305,
+        "confidence": 92,
+        "issues": [],
+        "warnings": []
+      },
+      "profileExtraction": {
+        "source": "gemini_extract_profile",
+        "masterProfileId": 1,
+        "analysis": {
+          "confidence": 100,
+          "needsClarification": false,
+          "clarificationQuestionCount": 0
+        }
+      },
+      "searchProfile": {
+        "id": 1,
+        "title": "HR Generalist HR Business Partner",
+        "locations": [
+          "Pune",
+          "Mumbai",
+          "Remote India"
+        ],
+        "workModel": "hybrid"
+      },
+      "scans": {
+        "validation": {
+          "scanId": 1,
+          "totalJobsFound": 6,
+          "failedPortals": 1,
+          "status": "partial"
+        },
+        "qaSeedScanId": 2,
+        "portalRuns": [
+          {
+            "portal": "validation_seed",
+            "status": "complete",
+            "jobsFound": 6,
+            "error": null
+          },
+          {
+            "portal": "validation_fail",
+            "status": "failed",
+            "jobsFound": 0,
+            "error": "{\"code\":\"selector_not_found\",\"message\":\"selector_not_found: simulated selector drift for validation\"}"
+          },
+          {
+            "portal": "qa_seed",
+            "status": "complete",
+            "jobsFound": 1,
+            "error": null
+          }
+        ]
+      },
+      "scoring": {
+        "scoredCount": 3,
+        "selectedScoredJobId": 3,
+        "selectedNormalizedJobId": 3,
+        "selectedScore": 96,
+        "selectedTier": "A"
+      },
+      "jobActions": {
+        "brief": {
+          "success": true,
+          "briefSummaryLength": 353
+        },
+        "saved": {
+          "success": true,
+          "status": "saved",
+          "saved": true,
+          "applied": false
+        },
+        "applied": {
+          "success": true,
+          "status": "applied",
+          "saved": false,
+          "applied": true
+        }
+      },
+      "documents": {
+        "resume": {
+          "success": true,
+          "resumeId": 1,
+          "pdfResumeId": 2,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/output/resumes/resume_PeopleOps_Cloud_HR_Generalist_People_Operations_job_3_v1_1777539338293.docx",
+          "pdfPath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/output/resumes/resume_PeopleOps_Cloud_HR_Generalist_People_Operations_job_3_v1_1777539338294.pdf",
+          "atsScore": 71
+        },
+        "coverLetter": {
+          "success": true,
+          "id": 4,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/output/cover-letters/cover_letter_PeopleOps_Cloud_3_1777539362432.txt",
+          "contentLength": 1663
+        },
+        "outreach": {
+          "success": true,
+          "id": 5,
+          "filePath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/output/cover-letters/outreach-notes/outreach_note_PeopleOps_Cloud_3_1777539367214.txt",
+          "contentLength": 437
+        },
+        "assetCount": 5,
+        "assetTypes": {
+          "resume": 1,
+          "resume_pdf": 1,
+          "ats_report": 1,
+          "cover_letter": 1,
+          "outreach_note": 1
+        }
+      },
+      "appState": {
+        "applications": [
+          {
+            "id": 1,
+            "scoredJobId": 3,
+            "status": "applied",
+            "title": "HR Generalist - People Operations",
+            "company": "PeopleOps Cloud"
+          }
+        ],
+        "commandCenter": {
+          "stats": {
+            "actionableJobs": 2,
+            "applyToday": 2,
+            "applyIn3Days": 1,
+            "totalScraped": 3,
+            "portalsActive": 2,
+            "averageScore": 65
+          },
+          "priorityQueueLength": 2,
+          "latestJobsLength": 2,
+          "portalHealth": [
+            {
+              "portal": "validation_seed",
+              "status": "complete",
+              "jobsFound": 6
+            },
+            {
+              "portal": "validation_fail",
+              "status": "failed",
+              "jobsFound": 0,
+              "failureCode": "selector_not_found",
+              "message": "selector_not_found: simulated selector drift for validation"
+            }
+          ],
+          "documentsGenerated": 5
+        }
+      },
+      "coach": {
+        "generatedChunkCount": 46,
+        "suggestions": [
+          "How does my background fit this role?",
+          "What are the biggest risks in my application?",
+          "What interview questions should I prepare for?",
+          "What are the strongest signals in this JD?",
+          "Which projects should I emphasize?",
+          "How should I explain my career trajectory?",
+          "Which ATS keywords am I still weak on?",
+          "Should I regenerate my resume?"
+        ],
+        "index": {
+          "chunksCreated": 46,
+          "chunksSkipped": 0
+        },
+        "threadId": 1,
+        "answer": {
+          "success": true,
+          "confidenceLevel": "high",
+          "sourcesUsed": 8,
+          "answerLength": 1387
+        }
+      },
+      "counts": {
+        "normalizedJobs": 3,
+        "scoredJobs": 3,
+        "applications": 1,
+        "documentAssets": 5,
+        "jdAnalyses": 1,
+        "aiRequestLogs": 9
+      },
+      "commands": [
+        {
+          "command": "/usr/local/bin/node scripts/db-init.mjs",
+          "stdoutTail": "Bootstrapping JobHunt India local environment...\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/config\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/db\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/cache\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/logs\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/output\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/output/resumes\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/output/cover-letters\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/output/outreach\nCreated directory: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/uploads\nCreated initial config at: /var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/config/settings.json\nBootstrap complete.\n",
+          "stderrTail": ""
+        },
+        {
+          "command": "/usr/local/bin/node scripts/db-schema-push.mjs",
+          "stdoutTail": "  job_duplicates\n  job_enrichments\n  master_profiles\n  message_sources\n  normalized_jobs\n  notification_preferences\n  notifications\n  platform_job_logs\n  platform_jobs\n  role_family_pack_registry\n  scan_portal_runs\n  scans\n  scheduled_tasks\n  scored_jobs\n  search_expansions\n  search_profiles\n  search_queries\n  source_registry\n  sqlite_sequence\n  uploaded_resumes\n  user_profiles\n  users\n  weekly_reviews\n",
+          "stderrTail": ""
+        },
+        {
+          "command": "/usr/local/bin/node scripts/k1-bootstrap-migration.mjs",
+          "stdoutTail": "Step 1: Adding ownership columns (ignoring duplicates)...\n\nStep 2: Bootstrap user...\n  Bootstrap user created (id=1)\n\nStep 3: Default profile...\n  Default profile created (id=1)\n\nStep 4: Backfilling profile_id...\n\nStep 5: Backfilling user_id...\n\nStep 5b: Backfilling profile_id on dual-ownership tables...\n\n✓ K-1 bootstrap migration complete\n  Bootstrap user id:    1\n  Default profile id:   1\n\nThe app will run in single-user mode using these IDs.\nTo add real auth, implement K-6 and swap resolveContext() in src/lib/platform/identity.ts.\n",
+          "stderrTail": ""
+        }
+      ],
+      "reportPath": "/var/folders/lv/g_093c4n7vzdpwzwj7g0kgjw0000gn/T/career-seek-qa-proof/2026-04-30T08-48-12-511Z/hr-4y/logs/qa-proof-report.json"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { JobService } from './service';
 import { getHandler } from './registry';
 import type { PlatformJob } from './types';
+import { logger } from '@/lib/logger';
 
 export class JobExecutor {
   /**
@@ -9,12 +10,12 @@ export class JobExecutor {
   static async execute(jobId: number): Promise<void> {
     const job = await JobService.getJob(jobId);
     if (!job) {
-      console.error(`[JobExecutor] Job ${jobId} not found`);
+      logger.error({ jobId }, 'Job not found');
       return;
     }
 
     if (job.status === 'succeeded' || job.status === 'canceled') {
-      console.warn(`[JobExecutor] Job ${jobId} is already in a terminal state: ${job.status}`);
+      logger.warn({ jobId, status: job.status }, 'Job is already in a terminal state');
       return;
     }
 
@@ -22,7 +23,7 @@ export class JobExecutor {
     if (!handler) {
       const error = `No handler registered for job type: ${job.jobType}`;
       await JobService.updateStatus(jobId, 'failed', error);
-      console.error(`[JobExecutor] ${error}`);
+      logger.error({ jobId, jobType: job.jobType }, error);
       return;
     }
 
@@ -30,15 +31,15 @@ export class JobExecutor {
       await JobService.updateStatus(jobId, 'running');
       
       const payload = JSON.parse(job.payload || '{}');
-      console.log(`[JobExecutor] Running job ${jobId} (${job.jobType})...`);
+      logger.info({ jobId, jobType: job.jobType }, 'Running platform job');
       
       const result = await handler(job, payload);
       
       await JobService.updateStatus(jobId, 'succeeded', undefined, result);
-      console.log(`[JobExecutor] Job ${jobId} succeeded`);
+      logger.info({ jobId }, 'Platform job succeeded');
     } catch (error: any) {
       const errorMessage = error.message || String(error);
-      console.error(`[JobExecutor] Job ${jobId} failed:`, error);
+      logger.error({ err: error, jobId }, 'Platform job failed');
 
       const attempts = (job.attempts || 0) + 1;
       const maxAttempts = job.maxAttempts || 3;
@@ -49,7 +50,7 @@ export class JobExecutor {
         const nextRetryAt = new Date(Date.now() + backoffMinutes * 60 * 1000);
         
         await JobService.updateStatus(jobId, 'retrying', errorMessage, undefined, nextRetryAt);
-        console.log(`[JobExecutor] Job ${jobId} scheduled for retry at ${nextRetryAt.toISOString()}`);
+        logger.warn({ jobId, nextRetryAt }, 'Platform job scheduled for retry');
       } else {
         await JobService.updateStatus(jobId, 'failed', errorMessage);
       }
@@ -66,7 +67,7 @@ export class JobExecutor {
       return;
     }
 
-    console.log(`[JobExecutor] Processing ${pendingJobs.length} pending jobs...`);
+    logger.info({ count: pendingJobs.length }, 'Processing pending platform jobs');
 
     // Process jobs in parallel with a simple concurrency limit
     const concurrencyLimit = 3;
@@ -74,7 +75,7 @@ export class JobExecutor {
       const chunk = pendingJobs.slice(i, i + concurrencyLimit);
       await Promise.all(chunk.map(job => 
         this.execute(job.id).catch(error => {
-          console.error(`[JobExecutor] Unhandled error during job ${job.id} execution:`, error);
+          logger.error({ err: error, jobId: job.id }, 'Unhandled error during platform job execution');
         })
       ));
     }

@@ -1,8 +1,8 @@
 import { getDb } from '@/db';
 import { applications, scoredJobs, jdAnalyses, masterProfiles, contacts } from '@/db/schema';
 import { eq } from 'drizzle-orm';
-import { getAppConfig } from '@/lib/config';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getAIRuntimeEnv, getAppConfig } from '@/lib/config';
+import { getAIManager } from '@/lib/ai/manager';
 import { generateWithFallback } from '../gemini';
 
 export type DraftType = 'follow_up' | 'thank_you' | 'recruiter_reply' | 'outreach';
@@ -24,11 +24,6 @@ export async function generateGroundedEmail(options: {
 }): Promise<GeneratedEmail> {
   const db = getDb();
   const config = getAppConfig();
-  const apiKey = config.geminiApiKey;
-
-  if (!apiKey) {
-    throw new Error('Gemini API key not configured. Please add it in settings.');
-  }
 
   // 1. Fetch Application & Scored Job
   const app = db.select().from(applications).where(eq(applications.id, options.applicationId)).get();
@@ -115,15 +110,16 @@ export async function generateGroundedEmail(options: {
     }
   `;
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  
   try {
-    const responseText = await generateWithFallback(genAI, prompt, { 
-      temperature: 0.7, 
-      responseMimeType: "application/json" 
-    }, 'generate_grounded_email');
+    const response = await getAIManager({ env: getAIRuntimeEnv(config) }).generate<GeneratedEmail>({
+      userPrompt: prompt,
+      temperature: 0.7,
+      responseFormat: 'json',
+      metadata: { taskType: 'generate_grounded_email' },
+    });
+    const responseText = response.text || JSON.stringify(response.parsed || {});
     
-    const result = JSON.parse(responseText);
+    const result = response.parsed || JSON.parse(responseText);
     
     if (!result.subject || !result.body) {
       throw new Error('AI response missing subject or body');
@@ -132,6 +128,16 @@ export async function generateGroundedEmail(options: {
     return result as GeneratedEmail;
   } catch (error) {
     console.error("Grounded email generation failed:", error);
-    throw new Error("Failed to generate AI email draft. Falling back to templates.");
+    try {
+      const responseText = await generateWithFallback(null, prompt, {
+        temperature: 0.7,
+        responseMimeType: "application/json"
+      }, 'generate_grounded_email');
+      const result = JSON.parse(responseText);
+      if (!result.subject || !result.body) throw new Error('AI response missing subject or body');
+      return result as GeneratedEmail;
+    } catch {
+      throw new Error("Failed to generate an email draft with the selected AI provider.");
+    }
   }
 }

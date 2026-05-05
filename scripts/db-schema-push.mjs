@@ -17,9 +17,11 @@ try {
     envLocal.split('\n').forEach(line => {
       const [key, ...rest] = line.split('=');
       const value = rest.join('=');
-      if (key && value) {
-        process.env[key.trim()] = value.trim();
-        console.log(`  Set ${key.trim()}=${value.trim()}`);
+      const envKey = key?.trim();
+      if (envKey && value && !process.env[envKey]) {
+        process.env[envKey] = value.trim();
+        const redacted = /key|token|secret|password/i.test(envKey) ? '<redacted>' : '<loaded>';
+        console.log(`  Loaded ${envKey}=${redacted}`);
       }
     });
   } else {
@@ -141,6 +143,49 @@ CREATE TABLE IF NOT EXISTS scan_portal_runs (
   finished_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS source_registry (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  source_type TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  default_enabled INTEGER DEFAULT 0,
+  payload TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS company_career_sources (
+  id TEXT PRIMARY KEY,
+  sector TEXT NOT NULL,
+  subsector TEXT,
+  role_family TEXT NOT NULL,
+  company TEXT NOT NULL,
+  priority INTEGER NOT NULL,
+  country_focus TEXT NOT NULL,
+  india_presence TEXT,
+  career_url_hint TEXT,
+  career_url_final TEXT NOT NULL,
+  ats_type TEXT NOT NULL,
+  city_tags TEXT,
+  remote_possible INTEGER DEFAULT 0,
+  role_keywords TEXT,
+  notes TEXT,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS role_family_pack_registry (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ats_provider_mappings (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS search_expansions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   scan_portal_run_id INTEGER NOT NULL REFERENCES scan_portal_runs(id),
@@ -258,6 +303,10 @@ CREATE TABLE IF NOT EXISTS document_chunks (
   content TEXT NOT NULL,
   metadata TEXT,
   embedding TEXT,
+  embedding_provider TEXT,
+  embedding_model TEXT,
+  embedding_dimensions INTEGER,
+  embedding_mode TEXT,
   token_count INTEGER,
   indexed_at INTEGER NOT NULL
 );
@@ -267,6 +316,10 @@ CREATE TABLE IF NOT EXISTS index_runs (
   profile_id INTEGER REFERENCES user_profiles(id),
   source_type TEXT NOT NULL,
   source_id INTEGER,
+  embedding_provider TEXT,
+  embedding_model TEXT,
+  embedding_dimensions INTEGER,
+  embedding_mode TEXT,
   chunks_created INTEGER DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'pending',
   started_at INTEGER,
@@ -677,7 +730,15 @@ const migrations = [
   "ALTER TABLE search_queries ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)",
   "ALTER TABLE document_assets ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)",
   "ALTER TABLE document_chunks ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)",
+  "ALTER TABLE document_chunks ADD COLUMN embedding_provider TEXT",
+  "ALTER TABLE document_chunks ADD COLUMN embedding_model TEXT",
+  "ALTER TABLE document_chunks ADD COLUMN embedding_dimensions INTEGER",
+  "ALTER TABLE document_chunks ADD COLUMN embedding_mode TEXT",
   "ALTER TABLE index_runs ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)",
+  "ALTER TABLE index_runs ADD COLUMN embedding_provider TEXT",
+  "ALTER TABLE index_runs ADD COLUMN embedding_model TEXT",
+  "ALTER TABLE index_runs ADD COLUMN embedding_dimensions INTEGER",
+  "ALTER TABLE index_runs ADD COLUMN embedding_mode TEXT",
   "ALTER TABLE coach_threads ADD COLUMN user_id INTEGER REFERENCES users(id)",
   "ALTER TABLE coach_threads ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)",
   "ALTER TABLE applications ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)",

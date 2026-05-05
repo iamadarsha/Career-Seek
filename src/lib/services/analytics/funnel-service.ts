@@ -21,6 +21,7 @@ import {
   inArray,
   count,
 } from 'drizzle-orm';
+import { isValidationJob } from '@/lib/services/documents/asset-filters';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -131,75 +132,29 @@ function buildFunnelStages(counts: StageCounts): FunnelStage[] {
 export function computeOverallFunnel(): FunnelStage[] {
   const db = getDb();
 
-  const discovered = Number(
-    db.select({ c: count() }).from(normalizedJobs).get()?.c ?? 0,
-  );
-  const scored = Number(
-    db.select({ c: count() }).from(scoredJobs).get()?.c ?? 0,
-  );
-  const saved = Number(
-    db.select({ c: count() }).from(applications).get()?.c ?? 0,
-  );
+  const discovered = db.select({
+    portal: normalizedJobs.portal,
+    title: normalizedJobs.title,
+    company: normalizedJobs.company,
+  }).from(normalizedJobs).all().filter((job) => !isValidationJob(job)).length;
 
-  const prepared = Number(
-    db
-      .select({ c: count() })
-      .from(applications)
-      .where(inArray(applications.status, [...PREPARED_STATUSES]))
-      .get()?.c ?? 0,
-  );
+  const scored = db.select({
+    portal: normalizedJobs.portal,
+    title: normalizedJobs.title,
+    company: normalizedJobs.company,
+  })
+    .from(scoredJobs)
+    .leftJoin(normalizedJobs, eq(scoredJobs.normalizedJobId, normalizedJobs.id))
+    .all()
+    .filter((row) => !isValidationJob(row)).length;
 
-  // applied: appliedAt IS NOT NULL OR status in APPLIED_STATUSES
-  const appliedByStatus = Number(
-    db
-      .select({ c: count() })
-      .from(applications)
-      .where(inArray(applications.status, [...APPLIED_STATUSES]))
-      .get()?.c ?? 0,
-  );
-  const appliedByDate = Number(
-    db
-      .select({ c: count() })
-      .from(applications)
-      .where(isNotNull(applications.appliedAt))
-      .get()?.c ?? 0,
-  );
-  // Use SQL MAX to avoid double-counting: count distinct applications matching either condition
-  const appliedRow = db
-    .select({ c: sql<number>`count(distinct ${applications.id})` })
-    .from(applications)
-    .where(
-      sql`${applications.appliedAt} IS NOT NULL OR ${applications.status} IN (${APPLIED_STATUSES.map(() => '?').join(',')})`,
-    )
-    .get();
-  // Fallback: use the larger of the two individual counts if raw SQL param binding isn't feasible
-  const appliedFinal = appliedRow
-    ? Number(appliedRow.c)
-    : Math.max(appliedByStatus, appliedByDate);
-
-  const recruiterReplied = Number(
-    db
-      .select({ c: count() })
-      .from(applications)
-      .where(inArray(applications.status, [...RECRUITER_REPLIED_STATUSES]))
-      .get()?.c ?? 0,
-  );
-
-  const interview = Number(
-    db
-      .select({ c: count() })
-      .from(applications)
-      .where(inArray(applications.status, [...INTERVIEW_STATUSES]))
-      .get()?.c ?? 0,
-  );
-
-  const offer = Number(
-    db
-      .select({ c: count() })
-      .from(applications)
-      .where(eq(applications.status, 'offer'))
-      .get()?.c ?? 0,
-  );
+  const visibleApplications = db.select().from(applications).all().filter((app) => !isValidationJob(app));
+  const saved = visibleApplications.length;
+  const prepared = visibleApplications.filter((app) => PREPARED_STATUSES.includes(app.status as any)).length;
+  const appliedFinal = visibleApplications.filter((app) => app.appliedAt || APPLIED_STATUSES.includes(app.status as any)).length;
+  const recruiterReplied = visibleApplications.filter((app) => RECRUITER_REPLIED_STATUSES.includes(app.status as any)).length;
+  const interview = visibleApplications.filter((app) => INTERVIEW_STATUSES.includes(app.status as any)).length;
+  const offer = visibleApplications.filter((app) => app.status === 'offer').length;
 
   return buildFunnelStages({
     discovered,

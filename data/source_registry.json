@@ -1,0 +1,478 @@
+{
+  "schema_version": "1.0.0",
+  "last_updated": "2026-04-24",
+  "market": "India",
+  "description": "Source priority ladder, failure taxonomy, and health display contract for Career Seek job discovery.",
+  "provider_priority_ladder": [
+    {
+      "priority": 1,
+      "source_id": "official_ats_company_pages",
+      "label": "Official ATS company pages",
+      "source_type": "ats",
+      "default_enabled": true,
+      "requires_browser": true,
+      "requires_credentials": false,
+      "providers": [
+        "greenhouse",
+        "lever",
+        "ashby",
+        "workday",
+        "rippling",
+        "bamboohr",
+        "icims",
+        "successfactors"
+      ],
+      "use_when": [
+        "A curated employer source has a known ATS provider.",
+        "Google or manual import discovers an official ATS URL.",
+        "The role family maps to a curated employer universe."
+      ],
+      "fallback_on": [
+        "auth_gate",
+        "blocked",
+        "timeout",
+        "selector_not_found",
+        "empty_results",
+        "source_drift",
+        "unsupported_provider"
+      ],
+      "display_notes": "Highest trust. Results should show employer-owned source and provider badge."
+    },
+    {
+      "priority": 2,
+      "source_id": "official_custom_company_pages",
+      "label": "Official custom company pages",
+      "source_type": "official_custom",
+      "default_enabled": true,
+      "requires_browser": true,
+      "requires_credentials": false,
+      "providers": [
+        "custom_unknown"
+      ],
+      "use_when": [
+        "The employer has an official careers page but no mapped ATS provider.",
+        "A known ATS page fails and the employer career landing page still loads.",
+        "The user manually adds a company name with a trusted official domain."
+      ],
+      "fallback_on": [
+        "blocked",
+        "captcha",
+        "timeout",
+        "parse_error",
+        "empty_results",
+        "source_drift"
+      ],
+      "display_notes": "High trust but variable extraction confidence. Show employer domain and verification state."
+    },
+    {
+      "priority": 3,
+      "source_id": "google_for_jobs_discovery",
+      "label": "Google for Jobs discovery",
+      "source_type": "search_discovery",
+      "default_enabled": true,
+      "fallback_only": true,
+      "requires_browser": true,
+      "requires_credentials": false,
+      "providers": [
+        "google_jobs"
+      ],
+      "use_when": [
+        "Official sources return too few matches.",
+        "A company URL or ATS slug is unknown.",
+        "The user searches a broad role family across India."
+      ],
+      "fallback_on": [
+        "blocked",
+        "captcha",
+        "auth_gate",
+        "rate_limited",
+        "timeout",
+        "empty_results",
+        "result_quality_low"
+      ],
+      "display_notes": "Fallback-only discovery layer. Live testing can hit auth_gate behavior; canonicalize to employer or ATS URL before ranking as official."
+    },
+    {
+      "priority": 4,
+      "source_id": "jobspy_multi_board_fallback",
+      "label": "JobSpy multi-board fallback",
+      "source_type": "vendor_fallback",
+      "default_enabled": true,
+      "requires_browser": true,
+      "requires_credentials": false,
+      "providers": [
+        "jobspy"
+      ],
+      "use_when": [
+        "Official and discovery sources fail or underfill.",
+        "The query is broad enough for multi-board recall.",
+        "The user explicitly requests maximum coverage."
+      ],
+      "fallback_on": [
+        "dependency_missing",
+        "blocked",
+        "rate_limited",
+        "timeout",
+        "parse_error",
+        "empty_results"
+      ],
+      "display_notes": "Recall fallback. Results require stronger deduping and source attribution."
+    },
+    {
+      "priority": 5,
+      "source_id": "portal_specific_fallback_scrapers",
+      "label": "Portal-specific fallback scrapers",
+      "source_type": "portal",
+      "default_enabled": true,
+      "requires_browser": true,
+      "requires_credentials": false,
+      "providers": [
+        "linkedin",
+        "naukri",
+        "foundit",
+        "shine",
+        "cutshort",
+        "instahyre",
+        "hirist",
+        "iimjobs",
+        "wellfound",
+        "indeed",
+        "timesjobs",
+        "glassdoor",
+        "placementindia",
+        "internshala",
+        "freshersworld",
+        "apna",
+        "workindia",
+        "government"
+      ],
+      "use_when": [
+        "Role family or user preference calls for a specific India portal.",
+        "Official sources do not cover the user's geography, seniority, or sector.",
+        "Freshers, blue/grey collar, government, or niche portal coverage is needed."
+      ],
+      "fallback_on": [
+        "blocked",
+        "captcha",
+        "auth_gate",
+        "rate_limited",
+        "selector_not_found",
+        "source_drift",
+        "empty_results"
+      ],
+      "display_notes": "Lower trust than employer-owned pages. Show portal source and ask user to verify before applying."
+    },
+    {
+      "priority": 6,
+      "source_id": "manual_url_company_import",
+      "label": "Manual URL or company import",
+      "source_type": "manual_recovery",
+      "default_enabled": true,
+      "requires_browser": true,
+      "requires_credentials": false,
+      "providers": [
+        "manual_url",
+        "manual_company"
+      ],
+      "use_when": [
+        "The user provides a specific URL or company list.",
+        "A high-value company is missing from the curated source map.",
+        "Automated discovery fails but the user can identify the official source."
+      ],
+      "fallback_on": [
+        "invalid_url",
+        "untrusted_domain",
+        "auth_gate",
+        "blocked",
+        "empty_results",
+        "manual_review_required"
+      ],
+      "display_notes": "Recovery path. Preserve user-provided URL, domain trust checks, and manual validation status."
+    }
+  ],
+  "failure_taxonomy": [
+    {
+      "code": "selector_not_found",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Page layout changed",
+      "description": "Expected selectors or structured fields were missing."
+    },
+    {
+      "code": "blocked",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Blocked by source",
+      "description": "The source rejected automated public access or returned a blocking page."
+    },
+    {
+      "code": "captcha",
+      "severity": "warning",
+      "retryable": false,
+      "user_visible_label": "CAPTCHA encountered",
+      "description": "The source requires human verification."
+    },
+    {
+      "code": "rate_limited",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Rate limited",
+      "description": "The source returned 429 or equivalent throttling."
+    },
+    {
+      "code": "timeout",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Timed out",
+      "description": "Navigation, API fetch, or rendering exceeded the configured timeout."
+    },
+    {
+      "code": "auth_gate",
+      "severity": "info",
+      "retryable": false,
+      "user_visible_label": "Login required",
+      "description": "The source requires authentication before job data is visible."
+    },
+    {
+      "code": "empty_results",
+      "severity": "info",
+      "retryable": true,
+      "user_visible_label": "No matching jobs",
+      "description": "The source was reachable but returned no matching public jobs."
+    },
+    {
+      "code": "dependency_missing",
+      "severity": "error",
+      "retryable": false,
+      "user_visible_label": "Integration missing",
+      "description": "A required local package, browser, script, or API key was not configured."
+    },
+    {
+      "code": "partial_source_failures",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Some sources failed",
+      "description": "At least one sub-source failed, but the adapter returned usable jobs."
+    },
+    {
+      "code": "source_drift",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Source drift",
+      "description": "The source changed URL shape, data schema, redirects, or rendering behavior."
+    },
+    {
+      "code": "browser_error",
+      "severity": "error",
+      "retryable": true,
+      "user_visible_label": "Browser error",
+      "description": "The local browser automation layer failed before extraction completed."
+    },
+    {
+      "code": "parse_error",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Could not parse source",
+      "description": "The response loaded but could not be normalized into job records."
+    },
+    {
+      "code": "network_error",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Network issue",
+      "description": "DNS, TLS, connection reset, or transient connectivity failure."
+    },
+    {
+      "code": "provider_api_error",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Provider API error",
+      "description": "A provider API returned an unexpected 4xx or 5xx response."
+    },
+    {
+      "code": "process_interrupted",
+      "severity": "error",
+      "retryable": true,
+      "user_visible_label": "Interrupted process",
+      "description": "A background job was left running or processing after a restart and was recovered by the worker."
+    },
+    {
+      "code": "unsupported_provider",
+      "severity": "info",
+      "retryable": false,
+      "user_visible_label": "Unsupported provider",
+      "description": "The source appears to use an ATS that Career Seek does not yet map."
+    },
+    {
+      "code": "invalid_url",
+      "severity": "info",
+      "retryable": false,
+      "user_visible_label": "Invalid URL",
+      "description": "A manual URL could not be parsed or uses an unsupported protocol."
+    },
+    {
+      "code": "untrusted_domain",
+      "severity": "warning",
+      "retryable": false,
+      "user_visible_label": "Untrusted domain",
+      "description": "The URL does not appear to be an employer, ATS, government, university, or known portal domain."
+    },
+    {
+      "code": "robots_restricted",
+      "severity": "info",
+      "retryable": false,
+      "user_visible_label": "Restricted by robots policy",
+      "description": "The source indicates crawling restrictions that should be respected."
+    },
+    {
+      "code": "result_quality_low",
+      "severity": "info",
+      "retryable": true,
+      "user_visible_label": "Low result quality",
+      "description": "Results were reachable but too generic, stale, duplicated, or off-intent."
+    },
+    {
+      "code": "manual_review_required",
+      "severity": "info",
+      "retryable": false,
+      "user_visible_label": "Manual review needed",
+      "description": "The source or result needs user confirmation before it should affect ranking."
+    },
+    {
+      "code": "unknown",
+      "severity": "warning",
+      "retryable": true,
+      "user_visible_label": "Unknown issue",
+      "description": "The adapter failed without a more specific classified reason."
+    }
+  ],
+  "health_statuses": [
+    {
+      "status": "healthy",
+      "rank": 1,
+      "description": "Source is reachable and returned parseable jobs or a stable empty state."
+    },
+    {
+      "status": "degraded",
+      "rank": 2,
+      "description": "Source is reachable but partial failures, missing fields, slow response, or fallback extraction occurred."
+    },
+    {
+      "status": "failing",
+      "rank": 3,
+      "description": "Source failed the latest run and no reliable results were returned."
+    },
+    {
+      "status": "not_configured",
+      "rank": 4,
+      "description": "Source requires credentials, local dependencies, or user input that are not configured."
+    },
+    {
+      "status": "disabled",
+      "rank": 5,
+      "description": "Source is intentionally off for the current role family, user preference, or risk level."
+    },
+    {
+      "status": "unknown",
+      "rank": 6,
+      "description": "Source has not yet been checked in the current environment."
+    }
+  ],
+  "source_health_display_fields": [
+    {
+      "field": "source_id",
+      "type": "string",
+      "description": "Stable source identifier from provider_priority_ladder or portal adapter."
+    },
+    {
+      "field": "source_label",
+      "type": "string",
+      "description": "Human-readable source name."
+    },
+    {
+      "field": "priority",
+      "type": "integer",
+      "description": "Official-first source priority, with 1 as highest trust."
+    },
+    {
+      "field": "provider_id",
+      "type": "string",
+      "description": "ATS, portal, discovery, or manual provider identifier."
+    },
+    {
+      "field": "health_status",
+      "type": "enum",
+      "description": "One of healthy, degraded, failing, not_configured, disabled, or unknown."
+    },
+    {
+      "field": "last_checked_at",
+      "type": "iso_datetime",
+      "description": "UTC timestamp of latest health or scrape attempt."
+    },
+    {
+      "field": "last_success_at",
+      "type": "iso_datetime_or_null",
+      "description": "UTC timestamp of latest successful parseable result or stable empty state."
+    },
+    {
+      "field": "failure_code",
+      "type": "failure_taxonomy_code_or_null",
+      "description": "Most recent classified failure."
+    },
+    {
+      "field": "failure_message",
+      "type": "string_or_null",
+      "description": "Short sanitized message suitable for logs and admin UI."
+    },
+    {
+      "field": "result_count",
+      "type": "integer",
+      "description": "Number of normalized jobs returned in the latest run."
+    },
+    {
+      "field": "official_confidence",
+      "type": "enum",
+      "description": "official, likely_official, portal_copy, manual_unverified, or unknown."
+    },
+    {
+      "field": "extraction_confidence",
+      "type": "number_0_to_1",
+      "description": "Confidence that title, company, location, URL, and apply URL were extracted correctly."
+    },
+    {
+      "field": "canonical_domain",
+      "type": "string_or_null",
+      "description": "Employer, ATS, portal, or government domain used for trust display."
+    },
+    {
+      "field": "requires_user_action",
+      "type": "boolean",
+      "description": "True when login, manual URL confirmation, API key setup, or manual validation is needed."
+    },
+    {
+      "field": "next_retry_after",
+      "type": "iso_datetime_or_null",
+      "description": "Retry boundary for rate limits, temporary blocks, or scheduled health checks."
+    },
+    {
+      "field": "notes",
+      "type": "string",
+      "description": "Concise operator note for why this source is prioritized, degraded, or disabled."
+    }
+  ],
+  "registry_defaults": {
+    "official_sources_first": true,
+    "dedupe_keys": [
+      "normalized_company",
+      "normalized_title",
+      "canonical_url",
+      "provider_job_id"
+    ],
+    "minimum_extraction_confidence_for_auto_rank": 0.65,
+    "manual_review_below_confidence": 0.45,
+    "show_portal_warning": true,
+    "show_apply_verification_warning": true,
+    "health_check_timeout_ms": 20000,
+    "scrape_timeout_ms": 30000
+  }
+}

@@ -17,9 +17,11 @@ import {
   jdAnalyses,
   documentAssets,
   documentChunks,
+  applications,
 } from '../../../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { desc, eq, and } from 'drizzle-orm';
 import { resolveContext } from '../../platform/identity';
+import { shouldHideValidationJob, shouldShowDocumentAsset } from '../documents/asset-filters';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -33,7 +35,8 @@ export type SourceType =
   | 'outreach_note'
   | 'enrichment'
   | 'search_preferences'
-  | 'jd_analysis';
+  | 'jd_analysis'
+  | 'application_history';
 
 export interface RawChunk {
   chunkId: string;
@@ -60,6 +63,12 @@ function estimateTokens(text: string): number {
 function safeParseJson(val: string | null | undefined): any {
   if (!val) return null;
   try { return JSON.parse(val); } catch { return null; }
+}
+
+function joinList(values: any): string {
+  return Array.isArray(values) && values.length > 0
+    ? values.filter(Boolean).join(', ')
+    : 'N/A';
 }
 
 // ── Chunkers by source type ────────────────────────────────────────────────
@@ -114,7 +123,9 @@ function chunkMasterProfile(profile: any, profileId: number): RawChunk[] {
 
   // Tools
   const tools = safeParseJson(profile.tools) || [];
-  if (tools.length > 0) {
+  const domains = safeParseJson(profile.domains) || [];
+  const certifications = safeParseJson(profile.certifications) || [];
+  if (tools.length > 0 || domains.length > 0 || certifications.length > 0) {
     chunks.push({
       chunkId: makeChunkId('master_profile', id, 'tools'),
       profileId,
@@ -122,7 +133,7 @@ function chunkMasterProfile(profile: any, profileId: number): RawChunk[] {
       sourceId: id,
       scoredJobId: null,
       section: 'tools',
-      content: `Tools & Platforms: ${tools.join(', ')}`,
+      content: `Tools & Platforms: ${joinList(tools)}\nDomains: ${joinList(domains)}\nCertifications: ${joinList(certifications)}`,
       metadata: {},
     });
   }
@@ -234,8 +245,18 @@ function chunkJobDescription(normalizedJob: any, scoredJobId: number, profileId:
     sourceId: normalizedJob.id,
     scoredJobId,
     section: 'overview',
-    content: `Job Title: ${normalizedJob.title}\nCompany: ${normalizedJob.company}\nLocation: ${normalizedJob.location || 'N/A'}\nSalary: ${normalizedJob.salaryRaw || 'Not specified'}\nExperience: ${normalizedJob.experienceRaw || 'Not specified'}`,
-    metadata: { title: normalizedJob.title, company: normalizedJob.company },
+    content: [
+      `Job Title: ${normalizedJob.title}`,
+      `Company: ${normalizedJob.company}`,
+      `Location: ${normalizedJob.location || 'N/A'}`,
+      `Work Model: ${normalizedJob.isRemote ? 'Remote' : normalizedJob.isHybrid ? 'Hybrid' : 'Not specified'}`,
+      `Salary: ${normalizedJob.salaryRaw || 'Not specified'}`,
+      `Experience: ${normalizedJob.experienceRaw || 'Not specified'}`,
+      `Employment Type: ${normalizedJob.employmentType || 'Not specified'}`,
+      `Portal: ${normalizedJob.portal || 'N/A'}`,
+      `Apply URL: ${normalizedJob.applyUrl || normalizedJob.url || 'N/A'}`,
+    ].join('\n'),
+    metadata: { title: normalizedJob.title, company: normalizedJob.company, portal: normalizedJob.portal },
   });
 
   if (normalizedJob.snippet) {
@@ -252,7 +273,7 @@ function chunkJobDescription(normalizedJob: any, scoredJobId: number, profileId:
         scoredJobId,
         section: `snippet_${Math.floor(i / chunkSize)}`,
         content: segment,
-        metadata: { title: normalizedJob.title, company: normalizedJob.company },
+        metadata: { title: normalizedJob.title, company: normalizedJob.company, portal: normalizedJob.portal },
       });
     }
   }
@@ -267,7 +288,9 @@ function chunkJdAnalysis(analysis: any, scoredJobId: number, profileId: number):
   const preferred = safeParseJson(analysis.preferredSkills) || [];
   const atsKw = safeParseJson(analysis.atsKeywords) || [];
   const tools = safeParseJson(analysis.toolRequirements) || [];
-  const senority = safeParseJson(analysis.senioritySignals) || [];
+  const seniority = safeParseJson(analysis.senioritySignals) || [];
+  const domains = safeParseJson(analysis.domainLanguage) || [];
+  const leadership = safeParseJson(analysis.leadershipSignals) || [];
 
   chunks.push({
     chunkId: makeChunkId('jd_analysis', scoredJobId, 'requirements'),
@@ -276,7 +299,15 @@ function chunkJdAnalysis(analysis: any, scoredJobId: number, profileId: number):
     sourceId: analysis.id,
     scoredJobId,
     section: 'requirements',
-    content: `Must-have Skills: ${mustHave.join(', ')}\nPreferred Skills: ${preferred.join(', ')}\nATS Keywords: ${atsKw.join(', ')}\nTool Requirements: ${tools.join(', ')}\nSeniority Signals: ${senority.join(', ')}`,
+    content: [
+      `Must-have Skills: ${joinList(mustHave)}`,
+      `Preferred Skills: ${joinList(preferred)}`,
+      `ATS Keywords: ${joinList(atsKw)}`,
+      `Tool Requirements: ${joinList(tools)}`,
+      `Domain Language: ${joinList(domains)}`,
+      `Seniority Signals: ${joinList(seniority)}`,
+      `Leadership Signals: ${joinList(leadership)}`,
+    ].join('\n'),
     metadata: {},
   });
 
@@ -307,15 +338,16 @@ function chunkEnrichment(enrichment: any, scoredJobId: number, profileId: number
     sourceId: enrichment.id,
     scoredJobId,
     section: 'brief',
-    content: `Fit Summary: ${enrichment.fitSummary || 'N/A'}\nPros: ${pros.join('; ')}\nCons: ${cons.join('; ')}\nInterview Angle: ${enrichment.interviewAngle || 'N/A'}\nResume Focus: ${enrichment.resumeFocus || 'N/A'}`,
+    content: `Fit Summary: ${enrichment.fitSummary || 'N/A'}\nPros: ${pros.join('; ')}\nCons: ${cons.join('; ')}\nInterview Angle: ${enrichment.interviewAngle || 'N/A'}\nResume Focus: ${enrichment.resumeFocus || 'N/A'}\nSalary Estimate: ${enrichment.salaryEstimate || 'N/A'}`,
     metadata: {},
   }];
 }
 
 function chunkDocumentAsset(asset: any, profileId: number): RawChunk[] {
   if (!asset.content) return [];
+  if (asset.type === 'resume_pdf') return [];
 
-  const sourceType = asset.type as SourceType;
+  const sourceType = (asset.type === 'resume' ? 'tailored_resume' : asset.type) as SourceType;
   let content = '';
   let section = 'full';
 
@@ -410,6 +442,31 @@ function chunkSearchPreferences(profile: any, profileId: number): RawChunk[] {
   }];
 }
 
+function chunkApplicationHistory(app: any, profileId: number): RawChunk[] {
+  const content = [
+    `Application: ${app.title} at ${app.company}`,
+    `Status: ${app.status}`,
+    `Location: ${app.location || 'N/A'}`,
+    `Portal: ${app.portal || 'N/A'}`,
+    `Priority: ${app.priority || 'normal'}`,
+    `Saved at: ${app.savedAt ? new Date(app.savedAt).toISOString() : 'N/A'}`,
+    `Applied at: ${app.appliedAt ? new Date(app.appliedAt).toISOString() : 'N/A'}`,
+    `Next follow-up: ${app.nextFollowUpAt ? new Date(app.nextFollowUpAt).toISOString() : 'N/A'}`,
+    `Score snapshot: ${app.scoreSnapshot || 'N/A'} (${app.tierSnapshot || 'N/A'})`,
+  ].join('\n');
+
+  return [{
+    chunkId: makeChunkId('application_history', app.id, 'status'),
+    profileId,
+    sourceType: 'application_history',
+    sourceId: app.id,
+    scoredJobId: app.scoredJobId,
+    section: 'status',
+    content,
+    metadata: { title: app.title, company: app.company, status: app.status },
+  }];
+}
+
 // ── Main entry point ───────────────────────────────────────────────────────
 
 /**
@@ -425,22 +482,38 @@ export function generateChunks(options: {
   const db = getDb();
   const { profileId } = resolveContext();
   const allChunks: RawChunk[] = [];
+  const currentProfile = db.select()
+    .from(masterProfiles)
+    .where(eq(masterProfiles.profileId, profileId))
+    .orderBy(desc(masterProfiles.updatedAt), desc(masterProfiles.id))
+    .limit(1)
+    .get();
 
   // Profile-level chunks
   if (options.includeProfile !== false) {
-    const profiles = db.select().from(masterProfiles).where(eq(masterProfiles.profileId, profileId)).all();
-    for (const p of profiles) {
-      allChunks.push(...chunkMasterProfile(p, profileId));
+    if (currentProfile) {
+      allChunks.push(...chunkMasterProfile(currentProfile, profileId));
     }
 
-    const resumes = db.select().from(uploadedResumes).where(eq(uploadedResumes.profileId, profileId)).all();
-    for (const r of resumes) {
-      allChunks.push(...chunkResumeText(r, profileId));
+    const currentResume = db.select()
+      .from(uploadedResumes)
+      .where(eq(uploadedResumes.profileId, profileId))
+      .orderBy(desc(uploadedResumes.uploadedAt), desc(uploadedResumes.id))
+      .limit(1)
+      .get();
+    if (currentResume) {
+      allChunks.push(...chunkResumeText(currentResume, profileId));
     }
 
     const searchProfs = db.select().from(searchProfiles).where(eq(searchProfiles.profileId, profileId)).all();
     for (const sp of searchProfs) {
       allChunks.push(...chunkSearchPreferences(sp, profileId));
+    }
+
+    const appRows = db.select().from(applications).where(eq(applications.profileId, profileId)).all();
+    for (const app of appRows) {
+      if (shouldHideValidationJob(app)) continue;
+      allChunks.push(...chunkApplicationHistory(app, profileId));
     }
   }
 
@@ -456,6 +529,7 @@ export function generateChunks(options: {
     if (!scored) return;
 
     const nj = db.select().from(normalizedJobs).where(eq(normalizedJobs.id, scored.normalizedJobId)).get();
+    if (!nj || shouldHideValidationJob(nj)) return;
     if (nj) {
       allChunks.push(...chunkJobDescription(nj, sjId, profileId));
     }
@@ -470,8 +544,18 @@ export function generateChunks(options: {
       allChunks.push(...chunkEnrichment(enrichment, sjId, profileId));
     }
 
-    const assets = db.select().from(documentAssets).where(and(eq(documentAssets.scoredJobId, sjId), eq(documentAssets.profileId, profileId))).all();
+    const assets = db.select().from(documentAssets)
+      .where(and(eq(documentAssets.scoredJobId, sjId), eq(documentAssets.profileId, profileId)))
+      .orderBy(desc(documentAssets.createdAt), desc(documentAssets.id))
+      .all()
+      .filter((asset) => shouldShowDocumentAsset(asset, currentProfile, nj));
+    const latestAssets = new Map<string, typeof assets[number]>();
     for (const asset of assets) {
+      if (!latestAssets.has(asset.type)) {
+        latestAssets.set(asset.type, asset);
+      }
+    }
+    for (const asset of latestAssets.values()) {
       allChunks.push(...chunkDocumentAsset(asset, profileId));
     }
   };

@@ -8,6 +8,7 @@ import {
 } from '../../../db/schema';
 import { eq, and, lte, desc } from 'drizzle-orm';
 import { resolveContext } from '@/lib/platform/identity';
+import { shouldHideValidationJob } from '@/lib/services/documents/asset-filters';
 
 export interface CrmDashboard {
   totalApplications: number;
@@ -43,7 +44,9 @@ export function getCrmDashboard(): CrmDashboard {
   today.setHours(23, 59, 59, 999);
   const staleThreshold = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000); // 14 days
 
-  const allApps = db.select().from(applications).where(eq(applications.profileId, profileId)).all();
+  const allApps = db.select().from(applications).where(eq(applications.profileId, profileId)).all()
+    .filter((app) => !shouldHideValidationJob(app));
+  const visibleApplicationIds = new Set(allApps.map((app) => app.id));
   
   // Status counts
   const statusCounts: Record<string, number> = {};
@@ -70,7 +73,8 @@ export function getCrmDashboard(): CrmDashboard {
       eq(applicationReminders.isCompleted, false),
       eq(applications.profileId, profileId)
     ))
-    .all();
+    .all()
+    .filter((reminder) => visibleApplicationIds.has(reminder.applicationId));
 
   // Overdue (past due, not completed)
   const overdueReminders = dueTodayReminders.filter(r => new Date(r.dueAt) < now);
@@ -98,8 +102,10 @@ export function getCrmDashboard(): CrmDashboard {
     .innerJoin(applications, eq(applicationTimeline.applicationId, applications.id))
     .where(eq(applications.profileId, profileId))
     .orderBy(desc(applicationTimeline.createdAt))
-    .limit(10)
-    .all();
+    .limit(50)
+    .all()
+    .filter((event) => visibleApplicationIds.has(event.applicationId))
+    .slice(0, 10);
 
   // Urgent items
   const urgentItems: CrmDashboard['urgentItems'] = [];
@@ -173,7 +179,8 @@ export function getSmartSuggestions(): Array<{
     priority: 'high' | 'medium' | 'low';
   }> = [];
 
-  const allApps = db.select().from(applications).where(eq(applications.profileId, profileId)).all();
+  const allApps = db.select().from(applications).where(eq(applications.profileId, profileId)).all()
+    .filter((app) => !shouldHideValidationJob(app));
 
   for (const app of allApps) {
     // Suggest follow-up 5 days after applying
@@ -230,4 +237,3 @@ export function getSmartSuggestions(): Array<{
     return priority[a.priority as keyof typeof priority] - priority[b.priority as keyof typeof priority];
   }).slice(0, 10);
 }
-

@@ -15,6 +15,7 @@ import {
 import { eq, desc, and, isNull, isNotNull, sql } from 'drizzle-orm';
 import { addTimelineEvent } from './timeline-service';
 import { resolveContext } from '@/lib/platform/identity';
+import { isValidationJob, shouldHideValidationJob } from '@/lib/services/documents/asset-filters';
 
 // ── Status lifecycle transitions ───────────────────────────────────────────
 
@@ -133,10 +134,15 @@ export function createFromScoredJob(scoredJobId: number) {
   });
 }
 
+function isVisibleApplication(app: Pick<typeof applications.$inferSelect, 'portal' | 'company' | 'title'>) {
+  return !shouldHideValidationJob(app);
+}
+
 export function getApplication(id: number) {
   const db = getDb();
   const { profileId } = resolveContext();
-  return db.select().from(applications).where(and(eq(applications.id, id), eq(applications.profileId, profileId))).get();
+  const app = db.select().from(applications).where(and(eq(applications.id, id), eq(applications.profileId, profileId))).get();
+  return app && isVisibleApplication(app) ? app : undefined;
 }
 
 export function listApplications(filters?: {
@@ -170,7 +176,7 @@ export function listApplications(filters?: {
     query = query.where(and(...conditions));
   }
 
-  const results = query.orderBy(desc(applications.updatedAt)).all();
+  const results = query.orderBy(desc(applications.updatedAt)).all().filter(isVisibleApplication);
 
   // Client-side search filter
   if (filters?.search) {
@@ -188,7 +194,7 @@ export function listApplications(filters?: {
 export function changeStatus(applicationId: number, newStatus: ApplicationStatus) {
   const db = getDb();
   const { profileId } = resolveContext();
-  const app = db.select().from(applications).where(and(eq(applications.id, applicationId), eq(applications.profileId, profileId))).get();
+  const app = getApplication(applicationId);
   if (!app) throw new Error('Application not found or access denied');
 
   const now = new Date();
@@ -229,6 +235,8 @@ export function updateApplication(id: number, updates: Partial<{
 }>) {
   const db = getDb();
   const { profileId } = resolveContext();
+  const app = getApplication(id);
+  if (!app) throw new Error('Application not found or access denied');
   db.update(applications)
     .set({ ...updates, updatedAt: new Date() })
     .where(and(eq(applications.id, id), eq(applications.profileId, profileId)))
@@ -240,7 +248,7 @@ export function deleteApplication(id: number) {
   const db = getDb();
   const { profileId } = resolveContext();
   // Verify ownership
-  const app = db.select().from(applications).where(and(eq(applications.id, id), eq(applications.profileId, profileId))).get();
+  const app = getApplication(id);
   if (!app) throw new Error('Application not found or access denied');
 
   // Cascade: delete timeline, notes, reminders, documents
@@ -255,7 +263,7 @@ export function deleteApplication(id: number) {
 export function getApplicationCounts(): Record<ApplicationStatus, number> {
   const db = getDb();
   const { profileId } = resolveContext();
-  const all = db.select().from(applications).where(eq(applications.profileId, profileId)).all();
+  const all = db.select().from(applications).where(eq(applications.profileId, profileId)).all().filter(isVisibleApplication);
   const counts = {} as Record<ApplicationStatus, number>;
   for (const status of APPLICATION_STATUSES) {
     counts[status] = 0;
@@ -271,7 +279,7 @@ export function getDistinctCompanies(): string[] {
   const db = getDb();
   const { profileId } = resolveContext();
   const results = db.selectDistinct({ company: applications.company }).from(applications).where(eq(applications.profileId, profileId)).all();
-  return results.map(r => r.company).sort();
+  return results.map(r => r.company).filter(company => !shouldHideValidationJob({ company })).sort();
 }
 
 
@@ -279,5 +287,5 @@ export function getDistinctPortals(): string[] {
   const db = getDb();
   const { profileId } = resolveContext();
   const results = db.selectDistinct({ portal: applications.portal }).from(applications).where(and(eq(applications.profileId, profileId), isNotNull(applications.portal))).all();
-  return results.map(r => r.portal!).filter(Boolean).sort();
+  return results.map(r => r.portal!).filter(portal => Boolean(portal) && !shouldHideValidationJob({ portal })).sort();
 }

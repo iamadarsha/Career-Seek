@@ -1,4 +1,5 @@
 import { JobQuery } from './types';
+import { normalizeRolePreferences } from '../search-preferences';
 
 // Converts a unified search profile into a normalized JobQuery for the orchestrator
 export function buildQueryFromProfile(profile: any): JobQuery {
@@ -11,9 +12,8 @@ export function buildQueryFromProfile(profile: any): JobQuery {
     return Array.isArray(val) ? val : [];
   };
 
-  const titleVariants = [profile.title];
-  // Add some simple logic to expand titles based on keywords if needed, 
-  // but for now, rely on exact title match plus variants if explicitly given
+  const normalizedRoles = normalizeRolePreferences({ title: profile.title });
+  const titleVariants = normalizedRoles.titleVariants;
 
   // Process experience band
   let experienceMin: number | undefined;
@@ -31,17 +31,38 @@ export function buildQueryFromProfile(profile: any): JobQuery {
   // Process expected salary
   let salaryMin: number | undefined;
   if (profile.expectedSalary) {
-    const match = profile.expectedSalary.match(/(\d+)/);
+    const lowerSalary = String(profile.expectedSalary).toLowerCase();
+    const match = lowerSalary.match(/(\d+(?:\.\d+)?)/);
     if (match) {
-      salaryMin = parseInt(match[1], 10);
-      // assuming the number extracted is e.g. 25 for "25 LPA"
-      // or 2500000. Let adapters handle interpretation.
+      const value = Number(match[1]);
+      salaryMin = /lpa|lac|lakh|lakhs/.test(lowerSalary)
+        ? Math.round(value * 100_000)
+        : Math.round(value);
     }
   }
 
+  const rawLocations = parseJsonSafe(profile.locations);
+  const rawCompanyTypes = parseJsonSafe(profile.companyTypes)
+    .map((item: string) => String(item || '').trim())
+    .filter(Boolean);
+  const targetCompanies = rawCompanyTypes
+    .filter((item: string) => item.toLowerCase().startsWith('target_company:'))
+    .map((item: string) => item.replace(/^target_company:/i, '').trim())
+    .filter(Boolean);
+  const companyTypes = rawCompanyTypes
+    .filter((item: string) => !item.toLowerCase().startsWith('target_company:'));
+  const locations = rawLocations
+    .map((location: string) => String(location || '').trim())
+    .filter(Boolean)
+    .map((location: string) => /^(anywhere\s+in\s+)?india$|^anywhere$|^any location$|^all india$/i.test(location)
+      ? 'India'
+      : location);
+
   return {
     titleVariants,
-    locations: parseJsonSafe(profile.locations),
+    locations: locations.length ? Array.from(new Set(locations)) : ['India'],
+    targetCompanies,
+    companyTypes,
     isRemote: profile.workModel?.toLowerCase().includes('remote'),
     isHybrid: profile.workModel?.toLowerCase().includes('hybrid'),
     experienceMin,
