@@ -38,7 +38,7 @@ export async function assertRedisReady(timeoutMs = 3_000) {
     await probe.connect();
     await probe.ping();
   } catch (error) {
-    throw new Error(`Redis is required for background jobs but is not reachable at ${redisUrl}. Run ./setup.sh --repair, run npm run launch, or set REDIS_URL to a reachable local Redis.`);
+    throw new Error(`Redis is not reachable at ${redisUrl}. Restart the app with \`npm run dev\` — it will auto-start the bundled Redis. If this is a fresh install, run \`npm run setup\` first.`);
   } finally {
     probe.disconnect();
   }

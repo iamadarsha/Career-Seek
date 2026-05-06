@@ -79,7 +79,7 @@ async function redisHealth(): Promise<HealthCheckItem> {
       'Redis queue',
       'fail',
       `Redis is not reachable at ${redisUrl}. Background scans and document jobs will wait.`,
-      'Run ./setup.sh --repair or npm run launch so the bundled Redis starts.',
+      'Restart with `npm run dev` — it auto-starts the bundled Redis. On a fresh install, run `npm run setup` first.',
       { reason: safeMessage(error), redisUrl },
     );
   } finally {

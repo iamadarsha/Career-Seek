@@ -11,8 +11,10 @@
   ],
   "scripts": {
     "dev": "next dev",
+    "predev": "node scripts/ensure-redis.mjs",
     "build": "next build",
     "start": "next start",
+    "prestart": "node scripts/ensure-redis.mjs",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "audit:workbench": "node scripts/audit-action-workbench.mjs",
