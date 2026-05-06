@@ -37,6 +37,51 @@ export class NaukriAdapter extends BasePortalAdapter {
   identifier = 'naukri';
   displayName = 'Naukri';
   private readonly maxJobs = Math.min(Number(process.env.JOBHUNT_NAUKRI_LIMIT || process.env.JOBHUNT_SOURCE_LIMIT || 40) || 40, 60);
+  private static sessionAuthenticated = false;
+
+  private async loginWithCredentials(context: BrowserContext, onProgress?: (msg: string) => void): Promise<boolean> {
+    if (NaukriAdapter.sessionAuthenticated) return true;
+    const email = process.env.NAUKRI_EMAIL?.trim();
+    const password = process.env.NAUKRI_PASSWORD?.trim();
+    if (!email || !password) return false;
+
+    const page = await context.newPage();
+    try {
+      onProgress?.('Naukri: attempting credential login…');
+      await page.goto('https://www.naukri.com/nlogin/login', { waitUntil: 'domcontentloaded', timeout: 30_000 });
+      await this.randomDelay(800, 1200);
+
+      const emailEl = await this.firstSelector(page, ['#usernameField', 'input[name="email"]', 'input[type="email"]']);
+      const passEl = await this.firstSelector(page, ['#passwordField', 'input[name="password"]', 'input[type="password"]']);
+      if (!emailEl || !passEl) return false;
+
+      await emailEl.fill(email);
+      await this.randomDelay(400, 700);
+      await passEl.fill(password);
+      await this.randomDelay(500, 800);
+
+      const submitEl = await this.firstSelector(page, ['button[type="submit"]', 'button.loginButton', 'input[type="submit"]']);
+      if (submitEl) {
+        await submitEl.click();
+      } else {
+        await passEl.press('Enter');
+      }
+
+      await page.waitForURL(/naukri\.com\/(?!nlogin)/, { timeout: 15_000 }).catch(() => {});
+      const url = page.url();
+      if (/nlogin/i.test(url)) {
+        onProgress?.('Naukri: credential login failed — check NAUKRI_EMAIL/NAUKRI_PASSWORD.');
+        return false;
+      }
+      NaukriAdapter.sessionAuthenticated = true;
+      onProgress?.('Naukri: credential login succeeded — session cookies active.');
+      return true;
+    } catch {
+      return false;
+    } finally {
+      await page.close();
+    }
+  }
 
   async healthCheck(context: BrowserContext): Promise<boolean> {
     const page = await context.newPage();
@@ -46,6 +91,9 @@ export class NaukriAdapter extends BasePortalAdapter {
   }
 
   async scrape(context: BrowserContext, query: JobQuery, onProgress?: (msg: string) => void): Promise<PortalScanResult> {
+    // Log in first so API requests carry session cookies
+    await this.loginWithCredentials(context, onProgress).catch(() => false);
+
     const apiJobs = await this.scrapeApi(context, query, onProgress).catch((error) => {
       onProgress?.(`Naukri API fallback unavailable: ${error.message || error}`);
       return null;

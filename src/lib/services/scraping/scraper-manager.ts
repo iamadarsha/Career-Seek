@@ -247,10 +247,9 @@ export class ScraperManager {
     const failures: SourceFailure[] = [];
     const primary = this.providerById('ts-jobspy');
     const secondary = this.providerById('google-jobs');
-    const tertiary = input.portal === 'linkedin'
-      ? this.providerById('existing-playwright-adapter')
-      : this.providerById('python-jobspy');
-    const quaternary = this.providerById('camoufox');
+    // Camoufox before stock Playwright for LinkedIn — LinkedIn detects standard Playwright immediately
+    const tertiary = this.providerById('camoufox');
+    const quaternary = this.providerById('existing-playwright-adapter');
     const quinary = this.providerById('browser-use-agent');
 
     const primaryResult = await this.runProvider(primary, input, failures);
@@ -269,7 +268,7 @@ export class ScraperManager {
       }
     }
 
-    // Camoufox: try when recon shows blocking or still no jobs for hard-blocked portals
+    // Existing Playwright adapter as fallback when Camoufox also failed / not installed
     const isHardBlocked = input.recon?.antiBotVendor !== undefined && input.recon.antiBotVendor !== 'none';
     if (jobs.length === 0 || isHardBlocked) {
       const quaternaryResult = await this.runProvider(quaternary, input, failures);
@@ -283,6 +282,48 @@ export class ScraperManager {
       const quinaryResult = await this.runProvider(quinary, input, failures);
       if (quinaryResult?.jobs?.length) {
         jobs = mergeJobs(jobs, quinaryResult.jobs);
+      }
+    }
+
+    if (jobs.length > 0) {
+      const result = partialResult(input.portal, jobs, failures);
+      await setCachedResult(input, result);
+      return result;
+    }
+
+    return failureResult(input.portal, failures);
+  }
+
+  // Hard portals (Naukri) skip ts-jobspy/google-jobs which don't support them
+  // and go straight: python-jobspy → Camoufox → existing adapter → browser-use
+  private async scrapeHardPortal(input: ScrapeInput): Promise<PortalScanResult> {
+    const failures: SourceFailure[] = [];
+    const primary = this.providerById('python-jobspy');
+    const secondary = this.providerById('camoufox');
+    const tertiary = this.providerById('existing-playwright-adapter');
+    const quaternary = this.providerById('browser-use-agent');
+
+    const primaryResult = await this.runProvider(primary, input, failures);
+    let jobs = primaryResult?.jobs || [];
+
+    if (jobs.length < 5) {
+      const secondaryResult = await this.runProvider(secondary, input, failures);
+      if (secondaryResult?.jobs?.length) {
+        jobs = mergeJobs(jobs, secondaryResult.jobs);
+      }
+    }
+
+    if (jobs.length < 3) {
+      const tertiaryResult = await this.runProvider(tertiary, input, failures);
+      if (tertiaryResult?.jobs?.length) {
+        jobs = mergeJobs(jobs, tertiaryResult.jobs);
+      }
+    }
+
+    if (jobs.length === 0) {
+      const quaternaryResult = await this.runProvider(quaternary, input, failures);
+      if (quaternaryResult?.jobs?.length) {
+        jobs = mergeJobs(jobs, quaternaryResult.jobs);
       }
     }
 
@@ -322,6 +363,10 @@ export class ScraperManager {
 
     if (input.portal === 'linkedin' || input.portal === 'indeed') {
       return this.scrapeWithGoogleSecondary(input);
+    }
+
+    if (input.portal === 'naukri') {
+      return this.scrapeHardPortal(input);
     }
 
     const failures: SourceFailure[] = [];

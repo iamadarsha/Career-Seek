@@ -19,6 +19,12 @@ import { JobSpyFallbackAdapter } from './adapters/jobspy-fallback';
 import { CONFIGURED_INDIA_SOURCES, ConfiguredSourceAdapter } from './adapters/configured-sources';
 import { BasePortalAdapter } from './adapters/base';
 import { ValidationFailAdapter, ValidationSeedAdapter } from './adapters/validation';
+import { WorkAtStartupAdapter } from './adapters/workatastartup';
+import { HiristAdapter } from './adapters/hirist';
+import { PeerlistAdapter } from './adapters/peerlist';
+import { CutshortAdapter } from './adapters/cutshort';
+import { OttaAdapter } from './adapters/otta';
+import { GrowthRolesAdapter } from './adapters/growthroles';
 import { classifySourceFailure, serializeSourceFailure } from './failures';
 import { buildDefaultScraperManager } from './scraper-manager';
 import { DEFAULT_DISCOVERY_SOURCE_IDS, orderSourcesByLadder, resolveSourceId, withMandatoryCompanySources } from './source-universe';
@@ -120,6 +126,12 @@ export class ScanOrchestrator {
     this.adapters.set('wellfound', new WellfoundAdapter());
     this.adapters.set('indeed', new IndeedAdapter());
     this.adapters.set('official', new OfficialCompaniesAdapter());
+    this.adapters.set('workatastartup', new WorkAtStartupAdapter());
+    this.adapters.set('hirist', new HiristAdapter());
+    this.adapters.set('peerlist', new PeerlistAdapter());
+    this.adapters.set('cutshort', new CutshortAdapter());
+    this.adapters.set('otta', new OttaAdapter());
+    this.adapters.set('growthroles', new GrowthRolesAdapter());
     if (process.env.JOBHUNT_ENABLE_VALIDATION_SOURCE === '1') {
       this.adapters.set('validation_seed', new ValidationSeedAdapter());
       this.adapters.set('validation_fail', new ValidationFailAdapter());

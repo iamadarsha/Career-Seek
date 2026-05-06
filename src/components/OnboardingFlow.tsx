@@ -8,9 +8,12 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   ExternalLink,
   FileText,
   KeyRound,
+  Lock,
   Loader2,
   MapPin,
   Search,
@@ -26,9 +29,11 @@ import {
   generateMasterProfile,
   getOnboardingState,
   getSystemCapabilitiesState,
+  readSavedPortalCredentials,
   saveClarificationAnswers,
   saveManualResumeText,
   saveSearchProfile,
+  saveSetupCredentials,
   startInitialScan,
   updateMasterProfile,
   uploadAndParseResume,
@@ -108,6 +113,16 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState<{ message: string; action?: string } | null>(null);
+  // Setup wizard: optional portal credentials
+  const [keyValidated, setKeyValidated] = useState(false);
+  const [linkedinEmail, setLinkedinEmail] = useState('');
+  const [linkedinPassword, setLinkedinPassword] = useState('');
+  const [naukriEmail, setNaukriEmail] = useState('');
+  const [naukriPassword, setNaukriPassword] = useState('');
+  const [serpApiKey, setSerpApiKey] = useState('');
+  const [showLinkedIn, setShowLinkedIn] = useState(false);
+  const [showNaukri, setShowNaukri] = useState(false);
+  const [showSerpApi, setShowSerpApi] = useState(false);
   const [resumeId, setResumeId] = useState<number | null>(null);
   const [resumeText, setResumeText] = useState('');
   const [manualResumeText, setManualResumeText] = useState('');
@@ -246,6 +261,35 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setBusyLabel('');
     if (!res.success) {
       setError({ message: res.message, action: res.action });
+      return;
+    }
+    // Pre-fill previously saved portal credentials (emails only, not passwords)
+    try {
+      const saved = await readSavedPortalCredentials();
+      if (saved.linkedinEmail) setLinkedinEmail(saved.linkedinEmail);
+      if (saved.naukriEmail) setNaukriEmail(saved.naukriEmail);
+      if (saved.hasSerpApi) setShowSerpApi(true);
+    } catch { /* non-critical */ }
+    setKeyValidated(true);
+  };
+
+  const handleSaveAll = async () => {
+    setBusyLabel('Saving…');
+    setError(null);
+    const res = await saveSetupCredentials({
+      aiProvider: provider,
+      aiKey: apiKey,
+      aiModel: model,
+      aiBaseUrl: baseUrl || undefined,
+      linkedinEmail: linkedinEmail || undefined,
+      linkedinPassword: linkedinPassword || undefined,
+      naukriEmail: naukriEmail || undefined,
+      naukriPassword: naukriPassword || undefined,
+      serpApiKey: serpApiKey || undefined,
+    });
+    setBusyLabel('');
+    if (!res.success) {
+      setError({ message: res.error || 'Failed to save credentials' });
       return;
     }
     setStep('resume');
@@ -570,111 +614,249 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             )}
 
             {step === 'api_key' && (
-              <form
-                className="max-w-2xl"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (!busyLabel) handleValidateKey();
-                }}
-              >
-                <KeyRound className="mb-5 h-10 w-10 text-primary" />
-                <h2 id="onboarding-step-title" className="text-4xl font-semibold">Choose how Career Seek should think</h2>
-                <p className="mt-3 text-muted-foreground">
-                  Pick a cloud model, a local Ollama model, a custom OpenAI-compatible endpoint, or continue in local-only mode and review everything manually.
-                </p>
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  {['Resume reading', 'Job fit notes', 'Tailored documents'].map((item) => (
-                    <div key={item} className="rounded-md border border-card-border bg-surface-container-low px-3 py-2 text-sm font-semibold text-foreground">
-                      {item}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-8 grid gap-4 md:grid-cols-2">
-                  <label className="space-y-2">
-                    <span className="text-sm font-semibold">Provider</span>
-                    <select value={provider} onChange={(event) => setProvider(event.target.value as AIProviderName)} className={inputClass}>
-                      {Object.entries(AI_PROVIDER_CATALOG).map(([value, meta]) => (
-                        <option key={value} value={value}>{meta.label}</option>
+              <div className="max-w-2xl">
+                {/* ── Phase 1: AI provider setup ─────────────────────────── */}
+                {!keyValidated && (
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (!busyLabel) handleValidateKey();
+                    }}
+                  >
+                    <KeyRound className="mb-5 h-10 w-10 text-primary" />
+                    <h2 id="onboarding-step-title" className="text-4xl font-semibold">Choose how Career Seek should think</h2>
+                    <p className="mt-3 text-muted-foreground">
+                      Pick a cloud model, a local Ollama model, or a custom OpenAI-compatible endpoint. Your key is stored locally and never sent anywhere except the AI provider.
+                    </p>
+                    <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                      {['Resume reading', 'Job fit scoring', 'Tailored documents'].map((item) => (
+                        <div key={item} className="rounded-md border border-card-border bg-surface-container-low px-3 py-2 text-sm font-semibold text-foreground">
+                          {item}
+                        </div>
                       ))}
-                    </select>
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-semibold">Model</span>
-                    {selectedProviderMeta.models ? (
-                      <select
-                        value={model}
-                        onChange={(event) => setModel(event.target.value)}
-                        className={inputClass}
-                      >
-                        {selectedProviderMeta.models.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.label}{m.note ? ` — ${m.note}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input
-                        value={model}
-                        onChange={(event) => setModel(event.target.value)}
-                        placeholder={selectedProviderMeta.defaultModel}
-                        className={`${inputClass} font-mono text-sm`}
-                      />
+                    </div>
+                    <div className="mt-8 grid gap-4 md:grid-cols-2">
+                      <label className="space-y-2">
+                        <span className="text-sm font-semibold">Provider</span>
+                        <select value={provider} onChange={(event) => setProvider(event.target.value as AIProviderName)} className={inputClass}>
+                          {Object.entries(AI_PROVIDER_CATALOG).map(([value, meta]) => (
+                            <option key={value} value={value}>{meta.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-sm font-semibold">Model</span>
+                        {selectedProviderMeta.models ? (
+                          <select value={model} onChange={(event) => setModel(event.target.value)} className={inputClass}>
+                            {selectedProviderMeta.models.map((m) => (
+                              <option key={m.id} value={m.id}>{m.label}{m.note ? ` — ${m.note}` : ''}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input value={model} onChange={(event) => setModel(event.target.value)} placeholder={selectedProviderMeta.defaultModel} className={`${inputClass} font-mono text-sm`} />
+                        )}
+                      </label>
+                    </div>
+                    {provider !== 'gemini' && (
+                      <div className="mt-4 space-y-2">
+                        <label htmlFor="provider-base-url" className="text-sm font-semibold">Base URL</label>
+                        <input id="provider-base-url" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder={selectedProviderMeta.baseUrlPlaceholder || selectedProviderMeta.baseUrl || ''} className={`${inputClass} font-mono text-sm`} />
+                      </div>
                     )}
-                  </label>
-                </div>
-                {provider !== 'gemini' && (
-                  <div className="mt-4 space-y-2">
-                    <label htmlFor="provider-base-url" className="text-sm font-semibold">Base URL</label>
-                    <input
-                      id="provider-base-url"
-                      value={baseUrl}
-                      onChange={(event) => setBaseUrl(event.target.value)}
-                      placeholder={selectedProviderMeta.baseUrlPlaceholder || selectedProviderMeta.baseUrl || ''}
-                      className={`${inputClass} font-mono text-sm`}
-                    />
+                    <div className="mt-8 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="provider-api-key" className="text-sm font-semibold">
+                          {selectedProviderMeta.requiresApiKey ? `${selectedProviderMeta.label} API key` : 'Optional token'}
+                        </label>
+                        {selectedProviderMeta.docsUrl && (
+                          <a href={selectedProviderMeta.docsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+                            Get a free key <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      <input
+                        id="provider-api-key"
+                        type="password"
+                        value={apiKey}
+                        onChange={(event) => setApiKey(event.target.value)}
+                        placeholder={selectedProviderMeta.requiresApiKey ? `Paste your ${selectedProviderMeta.label} API key` : 'Leave blank unless your local endpoint needs a token'}
+                        className={`${inputClass} min-h-14 font-mono text-sm`}
+                      />
+                      <p className="text-sm text-muted-foreground">{selectedProviderMeta.helpText}</p>
+                    </div>
+                    <div className="mt-8 flex flex-wrap gap-3">
+                      <button type="submit" disabled={Boolean(busyLabel)} className={primaryActionClass}>
+                        {busyLabel ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        Test key &amp; continue <ArrowRight className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={handleContinueWithoutProvider} disabled={Boolean(busyLabel)} className={secondaryActionClass}>
+                        Continue without AI
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* ── Phase 2: Credentials confirmed + optional portals ──── */}
+                {keyValidated && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 id="onboarding-step-title" className="text-4xl font-semibold">AI is ready</h2>
+                      <p className="mt-3 text-muted-foreground">
+                        Optionally unlock more job sources with portal credentials. Everything stays on your machine.
+                      </p>
+                    </div>
+
+                    {/* Confirmed AI badge */}
+                    <div className="flex items-center justify-between rounded-md border border-card-border bg-surface p-4">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-500" />
+                        <div>
+                          <p className="font-semibold">{selectedProviderMeta.label} — {model}</p>
+                          <p className="text-sm text-muted-foreground">Key validated and saved</p>
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => { setKeyValidated(false); setError(null); }} className="text-sm font-semibold text-primary hover:underline">
+                        Change
+                      </button>
+                    </div>
+
+                    {/* Section header */}
+                    <div className="rounded-md border border-card-border bg-surface-container-low px-4 py-3">
+                      <p className="text-sm font-semibold">Boost job sources <span className="font-normal text-muted-foreground">— optional, skip if you prefer</span></p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Credentials are stored in your local app data folder and in <code className="rounded bg-card px-1">.env.local</code>. They never leave your machine.
+                      </p>
+                    </div>
+
+                    {/* LinkedIn card */}
+                    <div className="rounded-md border border-card-border bg-surface">
+                      <button
+                        type="button"
+                        onClick={() => setShowLinkedIn((v) => !v)}
+                        className="flex w-full items-center justify-between p-4 text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">in</div>
+                          <div>
+                            <p className="font-semibold">LinkedIn</p>
+                            <p className="text-xs text-muted-foreground">Authenticated search · ~3× more results vs public view</p>
+                          </div>
+                        </div>
+                        {showLinkedIn ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      </button>
+                      {showLinkedIn && (
+                        <div className="border-t border-card-border p-4 space-y-3">
+                          <p className="text-sm text-muted-foreground">Career Seek logs in once per session using a headless browser. Your credentials never leave this machine.</p>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="space-y-1.5">
+                              <span className="text-sm font-semibold">Email</span>
+                              <input type="email" value={linkedinEmail} onChange={(e) => setLinkedinEmail(e.target.value)} placeholder="you@example.com" className={inputClass} autoComplete="off" />
+                            </label>
+                            <label className="space-y-1.5">
+                              <span className="text-sm font-semibold">Password</span>
+                              <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <input type="password" value={linkedinPassword} onChange={(e) => setLinkedinPassword(e.target.value)} placeholder="LinkedIn password" className={`${inputClass} pl-9`} autoComplete="new-password" />
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Naukri card */}
+                    <div className="rounded-md border border-card-border bg-surface">
+                      <button
+                        type="button"
+                        onClick={() => setShowNaukri((v) => !v)}
+                        className="flex w-full items-center justify-between p-4 text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-600">N</div>
+                          <div>
+                            <p className="font-semibold">Naukri</p>
+                            <p className="text-xs text-muted-foreground">Profile-based recommendations · India's largest job board</p>
+                          </div>
+                        </div>
+                        {showNaukri ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      </button>
+                      {showNaukri && (
+                        <div className="border-t border-card-border p-4 space-y-3">
+                          <p className="text-sm text-muted-foreground">Unlocks Naukri's authenticated listings and profile-matched recommendations.</p>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="space-y-1.5">
+                              <span className="text-sm font-semibold">Email</span>
+                              <input type="email" value={naukriEmail} onChange={(e) => setNaukriEmail(e.target.value)} placeholder="you@example.com" className={inputClass} autoComplete="off" />
+                            </label>
+                            <label className="space-y-1.5">
+                              <span className="text-sm font-semibold">Password</span>
+                              <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <input type="password" value={naukriPassword} onChange={(e) => setNaukriPassword(e.target.value)} placeholder="Naukri password" className={`${inputClass} pl-9`} autoComplete="new-password" />
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* SerpAPI card */}
+                    <div className="rounded-md border border-card-border bg-surface">
+                      <button
+                        type="button"
+                        onClick={() => setShowSerpApi((v) => !v)}
+                        className="flex w-full items-center justify-between p-4 text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">G</div>
+                          <div>
+                            <p className="font-semibold">Google Jobs via SerpAPI</p>
+                            <p className="text-xs text-muted-foreground">Free · 100 searches/month · no CAPTCHA blocks</p>
+                          </div>
+                        </div>
+                        {showSerpApi ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                      </button>
+                      {showSerpApi && (
+                        <div className="border-t border-card-border p-4 space-y-4">
+                          <div className="rounded-md bg-surface-container-low p-4">
+                            <p className="text-sm font-semibold mb-2">How to get your free key</p>
+                            <ol className="space-y-1.5 text-sm text-muted-foreground list-decimal list-inside">
+                              <li>Visit <a href="https://serpapi.com" target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline inline-flex items-center gap-0.5">serpapi.com <ExternalLink className="h-3 w-3" /></a> and click <strong>Get Started Free</strong></li>
+                              <li>Sign up with your email — no credit card needed</li>
+                              <li>Copy your API key from the Dashboard page</li>
+                              <li>Paste it below</li>
+                            </ol>
+                            <p className="mt-2 text-xs text-muted-foreground">Free tier: 100 searches/month — plenty for daily job hunting.</p>
+                          </div>
+                          <label className="block space-y-1.5">
+                            <span className="text-sm font-semibold">SerpAPI key</span>
+                            <input type="password" value={serpApiKey} onChange={(e) => setSerpApiKey(e.target.value)} placeholder="Paste your SerpAPI key" className={`${inputClass} font-mono text-sm`} autoComplete="off" />
+                          </label>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-3 pt-1">
+                      <button type="button" onClick={handleSaveAll} disabled={Boolean(busyLabel)} className={primaryActionClass}>
+                        {busyLabel ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        Save &amp; continue <ArrowRight className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => setStep('resume')} disabled={Boolean(busyLabel)} className={secondaryActionClass}>
+                        Skip for now
+                      </button>
+                    </div>
                   </div>
                 )}
-                <div className="mt-8 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="provider-api-key" className="text-sm font-semibold">
-                      {selectedProviderMeta.requiresApiKey ? `${selectedProviderMeta.label} API key` : 'Optional token'}
-                    </label>
-                    {selectedProviderMeta.docsUrl && (
-                      <a href={selectedProviderMeta.docsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
-                        Open provider docs <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    )}
+
+                {/* Error display (both phases) */}
+                {error && (
+                  <div className="mt-5 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
+                    <p className="font-semibold text-destructive">{error.message}</p>
+                    {error.action && <p className="mt-1 text-muted-foreground">{error.action}</p>}
                   </div>
-                  <input
-                    id="provider-api-key"
-                    type="password"
-                    value={apiKey}
-                    onChange={(event) => setApiKey(event.target.value)}
-                    placeholder={selectedProviderMeta.requiresApiKey ? `Paste your ${selectedProviderMeta.label} API key` : 'Leave blank unless your local endpoint needs a token'}
-                    className={`${inputClass} min-h-14 font-mono text-sm`}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    {selectedProviderMeta.helpText} Everything is stored in your local settings folder and can be changed later.
-                  </p>
-                </div>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <button
-                    type="submit"
-                    disabled={Boolean(busyLabel)}
-                    className={primaryActionClass}
-                  >
-                    Save setup and continue <ArrowRight className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleContinueWithoutProvider}
-                    disabled={Boolean(busyLabel)}
-                    className={secondaryActionClass}
-                  >
-                    Continue in local-only mode
-                  </button>
-                </div>
-              </form>
+                )}
+              </div>
             )}
 
             {step === 'resume' && (

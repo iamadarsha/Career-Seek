@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { getDb } from '../../../db';
-import { masterProfiles } from '../../../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { masterProfiles, uploadedResumes } from '../../../db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 import { resolveContext } from '@/lib/platform/identity';
 import { generateDocumentJson, JdAnalysis, safeDocumentAiErrorMessage } from './analysis';
+import { MASTER_GENERATION_RULES } from './generation-rules';
 
 export const TailoredResumeSchema = z.object({
   fullName: z.string(),
@@ -13,6 +14,8 @@ export const TailoredResumeSchema = z.object({
     phone: z.string().optional(),
     email: z.string().optional(),
     linkedin: z.string().optional(),
+    github: z.string().optional(),
+    website: z.string().optional(),
   }).optional(),
   summary: z.string(),
   skillCategories: z.array(z.object({
@@ -80,25 +83,6 @@ function uniqueStrings(values: unknown[], limit = 24) {
   return result;
 }
 
-function profileSourceText(profile: typeof masterProfiles.$inferSelect) {
-  return normalizeText([
-    profile.fullName,
-    profile.headline,
-    profile.rawSummary,
-    JSON.stringify(safeArray(profile.skillsExplicit)),
-    JSON.stringify(safeArray(profile.skillsInferred)),
-    JSON.stringify(safeArray(profile.tools)),
-    JSON.stringify(safeArray(profile.domains)),
-    JSON.stringify(safeArray(profile.experience)),
-    JSON.stringify(safeArray(profile.projects)),
-    JSON.stringify(safeArray(profile.achievements)),
-    JSON.stringify(safeArray(profile.education)),
-    JSON.stringify(safeArray(profile.certifications)),
-  ].filter(Boolean).join(' '));
-}
-
-// --- Fallback (deterministic) ---
-
 function sourceExperience(profile: typeof masterProfiles.$inferSelect) {
   return safeArray(profile.experience).map((item: any) => ({
     role: String(item?.role || item?.title || '').trim(),
@@ -127,6 +111,8 @@ function sourceProjects(profile: typeof masterProfiles.$inferSelect) {
     bullets: Array.isArray(item?.bullets) ? item.bullets.map((b: unknown) => String(b || '').trim()).filter(Boolean) : [],
   }));
 }
+
+// --- Fallback (deterministic) ---
 
 function fallbackTailoredResume(
   profile: typeof masterProfiles.$inferSelect,
@@ -170,7 +156,7 @@ function fallbackTailoredResume(
   };
 }
 
-// --- Grounding check (light — only catches fabricated identities) ---
+// --- Grounding check ---
 
 function generatedResumeText(resume: TailoredResume) {
   return normalizeText(JSON.stringify(resume));
@@ -197,14 +183,35 @@ function unsupportedMetric(rawOutputText: string, normalizedSourceText: string) 
   return metrics.find((metric) => !normalizedSourceText.includes(normalizeText(metric)));
 }
 
-function findGroundingIssue(resume: TailoredResume, profile: typeof masterProfiles.$inferSelect) {
+function findGroundingIssue(
+  resume: TailoredResume,
+  profile: typeof masterProfiles.$inferSelect,
+  rawResumeText: string,
+) {
   const profileName = normalizeText(profile.fullName);
   const resumeName = normalizeText(resume.fullName);
   if (profileName && resumeName && resumeName !== profileName && !resumeName.includes(profileName) && !profileName.includes(resumeName)) {
     return 'generated full name does not match the master profile';
   }
 
-  const sourceText = profileSourceText(profile);
+  // Ground against raw resume text when available, fall back to schema fields
+  const sourceText = rawResumeText.length > 200
+    ? normalizeText(rawResumeText)
+    : normalizeText([
+      profile.fullName,
+      profile.headline,
+      profile.rawSummary,
+      JSON.stringify(safeArray(profile.skillsExplicit)),
+      JSON.stringify(safeArray(profile.skillsInferred)),
+      JSON.stringify(safeArray(profile.tools)),
+      JSON.stringify(safeArray(profile.domains)),
+      JSON.stringify(safeArray(profile.experience)),
+      JSON.stringify(safeArray(profile.projects)),
+      JSON.stringify(safeArray(profile.achievements)),
+      JSON.stringify(safeArray(profile.education)),
+      JSON.stringify(safeArray(profile.certifications)),
+    ].filter(Boolean).join(' '));
+
   const outputText = generatedResumeText(resume);
   const foreignMarkers = ['asha mehta', 'fintech cloud india', 'saasworks', 'john doe', 'jane doe', 'sample candidate', 'acme corp'];
   const marker = foreignMarkers.find((value) => outputText.includes(value) && !sourceText.includes(value));
@@ -224,9 +231,174 @@ function findGroundingIssue(resume: TailoredResume, profile: typeof masterProfil
 
   const rawOutputText = JSON.stringify(resume);
   const metric = unsupportedMetric(rawOutputText, sourceText);
-  if (metric) return `generated resume includes a metric not present in the master profile: ${metric}`;
+  if (metric) return `generated resume includes a metric not present in the source: ${metric}`;
 
   return null;
+}
+
+// --- Edit-based prompt builder ---
+
+function buildEditPrompt(
+  rawResumeText: string,
+  profile: typeof masterProfiles.$inferSelect,
+  jdAnalysis: JdAnalysis,
+  jobContext: any,
+  profileSkills: string[],
+  profileTools: string[],
+  jdKeywords: string[],
+  strict: boolean = false,
+): string {
+  const sourceText = normalizeText(rawResumeText);
+  const supportedKeywords = jdKeywords.filter((kw) => sourceText.includes(normalizeText(kw)));
+  const unsupportedKeywords = jdKeywords.filter((kw) => !sourceText.includes(normalizeText(kw)));
+
+  const strictNote = strict
+    ? '\nSTRICT MODE: Return the resume with ZERO invented content. If you are unsure about any fact, preserve the original wording verbatim.\n'
+    : '';
+
+  return `${MASTER_GENERATION_RULES}
+
+========================
+RESUME EDITOR INSTRUCTIONS
+========================
+You are a senior resume editor specialising in ATS optimisation. You will EDIT an existing resume to target a specific job. You do NOT generate a new resume — you surgically modify the original.
+${strictNote}
+EDITING RULES (read carefully):
+1. Preserve every fact: company names, job titles, dates, degree names, institutions, metrics, technologies — copy verbatim from the original resume. Never invent, extrapolate, or paraphrase facts.
+2. Minimum edits only: change as little as possible while maximising JD keyword coverage. If a bullet is already strong, leave it exactly as-is.
+3. Summary/Headline: rewrite these two fields to target the role. Every other section change must be justified by a JD keyword match.
+4. Skill reordering: move supported JD keywords to the front of skill lists. Do not add any skill not present in the original resume.
+5. Bullet enhancement: for at most ONE bullet per role, lightly rephrase to embed a supported JD keyword — only if that keyword is already implicit in the bullet's meaning. Do not fabricate achievements.
+6. Supported keywords (FROM original resume — you MAY use these): ${supportedKeywords.length ? supportedKeywords.join(', ') : 'none found'}
+7. Unsupported keywords (NOT in original — NEVER add these): ${unsupportedKeywords.length ? unsupportedKeywords.join(', ') : 'none'}
+8. If the original resume has a section (projects, certifications, etc.), include it. If it doesn't, omit it.
+
+ORIGINAL RESUME (source of truth — preserve everything):
+---
+${rawResumeText}
+---
+
+TARGET JOB:
+Title: ${jobContext.title}
+Company: ${jobContext.company}
+Location: ${jobContext.location || 'India'}
+JD Context: ${jobContext.snippet || ''}
+
+JD Analysis:
+- Must-have skills: ${jdAnalysis.mustHaveSkills.join(', ')}
+- Preferred skills: ${jdAnalysis.preferredSkills.join(', ')}
+- ATS keywords: ${jdAnalysis.atsKeywords.join(', ')}
+- Tool requirements: ${jdAnalysis.toolRequirements.join(', ')}
+- Business context: ${jdAnalysis.businessContext}
+- Hiring priorities: ${jdAnalysis.hiringPriorities}
+
+CANDIDATE PROFILE (for contact details and structure reference):
+Name: ${profile.fullName}
+Headline: ${profile.headline}
+
+OUTPUT RULES:
+- Return a single JSON object. Do NOT wrap in markdown fences.
+- fullName: copy exactly from original resume
+- headline: rewrite for the target role (max 14 words)
+- contact: copy all contact fields from the original resume exactly
+- summary: 3-5 sentences, first sentence must naturally embed the top 2 must-have JD skills; grounded in the original summary's facts
+- skillCategories: 4-7 JD-aligned categories; supported JD skills first; no skills absent from original
+- experience: every role from original resume, same dates and companies; bullets edited minimally for JD keyword embedding
+- projects: all projects from original resume if present
+- education: copy verbatim from original
+- certifications: copy verbatim from original
+
+{
+  "fullName": "...",
+  "headline": "...",
+  "contact": { "location": "...", "phone": "...", "email": "...", "linkedin": "...", "github": "...", "website": "..." },
+  "summary": "...",
+  "skillCategories": [{ "category": "...", "skills": ["..."] }],
+  "experience": [{ "role": "...", "company": "...", "location": "...", "duration": "...", "bullets": ["..."] }],
+  "projects": [{ "name": "...", "description": "...", "technologies": ["..."], "bullets": ["..."] }],
+  "education": [{ "degree": "...", "institution": "...", "year": "...", "description": "..." }],
+  "certifications": ["..."]
+}`;
+}
+
+// --- Schema-based prompt builder (fallback when raw text is unavailable) ---
+
+function buildSchemaPrompt(
+  profile: typeof masterProfiles.$inferSelect,
+  jdAnalysis: JdAnalysis,
+  jobContext: any,
+  profileSkills: string[],
+  profileTools: string[],
+  jdKeywords: string[],
+): string {
+  const expItems = sourceExperience(profile);
+  const projectItems = sourceProjects(profile);
+  const certItems = uniqueStrings(safeArray(profile.certifications), 10);
+  const allDomains = uniqueStrings(safeArray(profile.domains), 20);
+
+  return `${MASTER_GENERATION_RULES}
+
+========================
+RESUME WRITER INSTRUCTIONS
+========================
+You are a senior executive resume writer and ATS specialist. Produce a resume that scores ≥85% on ATS keyword coverage. Use ONLY facts from the candidate profile — never invent anything.
+
+ABSOLUTE RULES:
+- NEVER invent experience, metrics, technologies, or companies
+- Every quantified metric MUST already appear in the master profile
+- If a JD keyword is not supported by the profile, do NOT include it
+- Preserve all employer names, job titles, dates, degree names, institutions exactly
+
+CANDIDATE MASTER PROFILE:
+Name: ${profile.fullName}
+Headline: ${profile.headline}
+Raw Summary: ${profile.rawSummary}
+
+Experience:
+${expItems.map((e) => `  - ${e.role} at ${e.company} (${e.duration})
+    Summary: ${e.summary}
+    Bullets: ${e.bullets.join(' | ')}`).join('\n')}
+
+Skills: ${profileSkills.join(', ')}
+Tools: ${profileTools.join(', ')}
+Domains: ${allDomains.join(', ')}
+Achievements: ${uniqueStrings(safeArray(profile.achievements), 10).join(' | ')}
+
+Projects:
+${projectItems.map((p) => `  - ${p.name}: ${p.description} | Tech: ${p.technologies.join(', ')}`).join('\n')}
+
+Education:
+${sourceEducation(profile).map((e) => `  - ${e.degree}, ${e.institution} (${e.year}): ${e.description}`).join('\n')}
+
+Certifications: ${certItems.join(', ')}
+
+TARGET JOB:
+Title: ${jobContext.title}
+Company: ${jobContext.company}
+Location: ${jobContext.location || 'India'}
+JD Context: ${jobContext.snippet || ''}
+
+JD Analysis:
+- Must-have skills: ${jdAnalysis.mustHaveSkills.join(', ')}
+- Preferred skills: ${jdAnalysis.preferredSkills.join(', ')}
+- ATS keywords: ${jdAnalysis.atsKeywords.join(', ')}
+- Tool requirements: ${jdAnalysis.toolRequirements.join(', ')}
+- Business context: ${jdAnalysis.businessContext}
+- Hiring priorities: ${jdAnalysis.hiringPriorities}
+
+JD keywords supported by this profile (ONLY use these): ${jdKeywords.join(', ')}
+
+OUTPUT: Return a single JSON object. Do NOT wrap in markdown fences.
+{
+  "fullName": "...", "headline": "...",
+  "contact": { "location": "...", "phone": "...", "email": "...", "linkedin": "..." },
+  "summary": "...",
+  "skillCategories": [{ "category": "...", "skills": ["..."] }],
+  "experience": [{ "role": "...", "company": "...", "location": "...", "duration": "...", "bullets": ["..."] }],
+  "projects": [{ "name": "...", "description": "...", "technologies": ["..."], "bullets": ["..."] }],
+  "education": [{ "degree": "...", "institution": "...", "year": "...", "description": "..." }],
+  "certifications": ["..."]
+}`;
 }
 
 // --- Main export ---
@@ -244,15 +416,21 @@ export async function tailorResume(
     .get();
   if (!profile) throw new Error('Master profile not found or access denied');
 
-  const expItems = sourceExperience(profile);
-  const projectItems = sourceProjects(profile);
-  const certItems = uniqueStrings(safeArray(profile.certifications), 10);
+  // Fetch raw resume text — the source of truth for the edit-based approach
+  const uploadRow = db.select({ parsedText: uploadedResumes.parsedText })
+    .from(uploadedResumes)
+    .where(eq(uploadedResumes.profileId, profileId))
+    .orderBy(desc(uploadedResumes.uploadedAt))
+    .limit(1)
+    .get();
+  const rawResumeText = uploadRow?.parsedText?.trim() || '';
+  const hasRawText = rawResumeText.length >= 200;
+
   const allSkills = uniqueStrings([
     ...safeArray(profile.skillsExplicit),
     ...safeArray(profile.skillsInferred),
   ], 60);
   const allTools = uniqueStrings(safeArray(profile.tools), 30);
-  const allDomains = uniqueStrings(safeArray(profile.domains), 20);
 
   const jdKeywords = uniqueStrings([
     ...jdAnalysis.mustHaveSkills,
@@ -261,127 +439,40 @@ export async function tailorResume(
     ...jdAnalysis.preferredSkills,
   ], 40);
 
-  const prompt = `
-You are a senior executive resume writer and ATS specialist. Your goal is to produce a resume that:
-  1. Scores ≥85% on ATS keyword coverage for the target role
-  2. Uses ONLY facts, numbers, dates, companies, and technologies that appear in the candidate's master profile — never invent anything
-  3. Matches the professional style and section structure of the candidate's reference resumes
+  const prompt = hasRawText
+    ? buildEditPrompt(rawResumeText, profile, jdAnalysis, jobContext, allSkills, allTools, jdKeywords, false)
+    : buildSchemaPrompt(profile, jdAnalysis, jobContext, allSkills, allTools, jdKeywords);
 
-ABSOLUTE RULES:
-- NEVER invent, hallucinate, or extrapolate experience, metrics, technologies, or companies
-- NEVER use placeholder text like "[Company]", "Various Clients", "N/A", or "In Development" for actual companies
-- Every quantified metric in the output MUST already appear in the master profile
-- If a JD keyword is not supported by the profile, do NOT include it
-- Preserve all employer names, job titles, dates, degree names, institutions exactly as they appear in the profile
+  const tryGenerate = async (temperature: number, strict: boolean): Promise<TailoredResume | null> => {
+    const activePrompt = (hasRawText && strict)
+      ? buildEditPrompt(rawResumeText, profile, jdAnalysis, jobContext, allSkills, allTools, jdKeywords, true)
+      : prompt;
 
-ATS OPTIMIZATION STRATEGY:
-- Place the most critical JD keywords in the professional summary (first 100 words)
-- Rewrite experience bullets to lead with JD-aligned action verbs and embed JD keywords naturally
-- Create skill categories that mirror the JD's domain language (e.g. if JD says "AI Tooling", use that as a category name)
-- Put must-have JD skills first within each category
-- Aim for 4-6 strong, specific bullets per role (quality > quantity)
-- In project bullets, name technologies and frameworks explicitly — ATS scans for these
-
-CANDIDATE MASTER PROFILE:
-Name: ${profile.fullName}
-Headline: ${profile.headline}
-Location: India
-Contact: adarsha.chatterjee@gmail.com | +91 8918077585 | linkedin.com/in/iamadarsha
-Raw Summary: ${profile.rawSummary}
-
-Experience:
-${expItems.map((e) => `  - ${e.role} at ${e.company} (${e.duration})
-    Summary: ${e.summary}
-    Bullets: ${e.bullets.join(' | ')}`).join('\n')}
-
-Skills: ${allSkills.join(', ')}
-Tools: ${allTools.join(', ')}
-Domains: ${allDomains.join(', ')}
-Achievements: ${uniqueStrings(safeArray(profile.achievements), 10).join(' | ')}
-
-Projects:
-${projectItems.map((p) => `  - ${p.name}: ${p.description} | Tech: ${p.technologies.join(', ')}`).join('\n')}
-
-Education:
-${sourceEducation(profile).map((e) => `  - ${e.degree}, ${e.institution} (${e.year}): ${e.description}`).join('\n')}
-
-Certifications: ${certItems.join(', ')}
-
-TARGET JOB:
-Title: ${jobContext.title}
-Company: ${jobContext.company}
-Location: ${jobContext.location || 'India'}
-Employment Type: ${jobContext.employmentType || 'Full-time'}
-JD Snippet: ${jobContext.snippet || ''}
-
-JD Analysis:
-- Must-have skills: ${jdAnalysis.mustHaveSkills.join(', ')}
-- Preferred skills: ${jdAnalysis.preferredSkills.join(', ')}
-- ATS keywords: ${jdAnalysis.atsKeywords.join(', ')}
-- Tool requirements: ${jdAnalysis.toolRequirements.join(', ')}
-- Business context: ${jdAnalysis.businessContext}
-- Hiring priorities: ${jdAnalysis.hiringPriorities}
-- Seniority signals: ${jdAnalysis.senioritySignals.join(', ')}
-
-JD keywords supported by this profile (ONLY use these from the JD list): ${jdKeywords.join(', ')}
-
-OUTPUT: Return a single JSON object matching this schema exactly. Do NOT wrap in markdown fences.
-{
-  "fullName": "Adarsha Chatterjee",
-  "headline": "<role-specific headline, max 12 words, bridge candidate background to ${jobContext.title}>",
-  "contact": {
-    "location": "Pune, Maharashtra, India",
-    "phone": "+91 8918077585",
-    "email": "adarsha.chatterjee@gmail.com",
-    "linkedin": "linkedin.com/in/iamadarsha"
-  },
-  "summary": "<3-5 sentence paragraph, first sentence must contain top 2-3 JD keywords, shows impact + expertise + target role fit>",
-  "skillCategories": [
-    { "category": "<JD-aligned category name>", "skills": ["<skill1>", "<skill2>", ...] },
-    ... 4-7 categories total, ordered by JD priority
-  ],
-  "experience": [
-    {
-      "role": "<exact title from profile>",
-      "company": "<exact company from profile>",
-      "location": "<city, country>",
-      "duration": "<exact dates from profile>",
-      "bullets": [
-        "<strong bullet: Action verb + JD keyword + specific outcome/metric if present in profile>",
-        ... 4-6 bullets per role
-      ]
-    }
-  ],
-  "projects": [
-    {
-      "name": "<project name from profile>",
-      "description": "<one-line description with JD keywords>",
-      "technologies": ["<tech1>", "<tech2>"],
-      "bullets": ["<bullet1>", "<bullet2>"]
-    }
-    ... up to 4 projects
-  ],
-  "education": [
-    { "degree": "<exact degree>", "institution": "<exact institution>", "year": "<year>", "description": "<subjects/field>" }
-  ],
-  "certifications": ["<cert1>", "<cert2>"]
-}
-`;
-
-  try {
-    const { data } = await generateDocumentJson(prompt, 'tailor_resume', {
-      temperature: 0.25,
+    const { data } = await generateDocumentJson(activePrompt, 'tailor_resume', {
+      temperature,
       schema: TailoredResumeSchema,
     });
 
     const validated = TailoredResumeSchema.parse(data);
-    const groundingIssue = findGroundingIssue(validated, profile);
+    const groundingIssue = findGroundingIssue(validated, profile, rawResumeText);
     if (groundingIssue) {
-      console.warn(`[resume-tailor] Grounding check failed — using fallback: ${groundingIssue}`);
-      return fallbackTailoredResume(profile, jdAnalysis, jobContext);
+      console.warn(`[resume-tailor] Grounding check failed (temp=${temperature}): ${groundingIssue}`);
+      return null;
     }
-
     return validated;
+  };
+
+  try {
+    const result = await tryGenerate(0.2, false);
+    if (result) return result;
+
+    // Retry with temperature=0 and strict mode before falling back
+    console.warn('[resume-tailor] First attempt failed grounding — retrying at temperature=0');
+    const retryResult = await tryGenerate(0, true);
+    if (retryResult) return retryResult;
+
+    console.warn('[resume-tailor] Both attempts failed grounding — using deterministic fallback');
+    return fallbackTailoredResume(profile, jdAnalysis, jobContext);
   } catch (error) {
     console.error(`[resume-tailor] AI generation failed — using fallback: ${safeDocumentAiErrorMessage(error)}`);
     return fallbackTailoredResume(profile, jdAnalysis, jobContext);

@@ -625,6 +625,62 @@ async function runGoogleSearchFallback(input: ScrapeInput) {
   }
 }
 
+async function runSerpApi(input: ScrapeInput): Promise<RawScrapedJob[]> {
+  const apiKey = process.env.SERPAPI_API_KEY?.trim();
+  if (!apiKey) throw new Error('no_serpapi_key');
+
+  const query = [
+    input.query.titleVariants?.[0] || 'jobs',
+    input.query.isRemote ? 'remote' : '',
+    input.query.locations?.[0] || 'India',
+  ].filter(Boolean).join(' ');
+
+  const params = new URLSearchParams({
+    engine: 'google_jobs',
+    q: query,
+    location: input.query.locations?.[0] || 'India',
+    hl: 'en',
+    gl: 'in',
+    api_key: apiKey,
+  });
+
+  const res = await fetch(`https://serpapi.com/search.json?${params.toString()}`, {
+    signal: AbortSignal.timeout(20_000),
+  });
+
+  if (res.status === 401) throw new Error('auth_gate: SerpAPI key invalid or quota exhausted');
+  if (!res.ok) throw new Error(`browser_error: SerpAPI returned HTTP ${res.status}`);
+
+  const data = await res.json();
+  const rows: any[] = Array.isArray(data.jobs_results) ? data.jobs_results : [];
+
+  return rows.slice(0, 20).map((job) => {
+    const sourceUrl = (
+      (job.related_links as any[])?.[0]?.link ||
+      job.apply_link ||
+      ''
+    );
+    const source = sourceSiteFromUrl(sourceUrl);
+    return {
+      portal: 'google_jobs',
+      externalId: String(job.job_id || sourceUrl || '').slice(0, 64) || undefined,
+      title: String(job.title || 'Untitled role').trim(),
+      company: String(job.company_name || 'Company not listed').trim(),
+      location: String(job.location || '').trim() || undefined,
+      isRemote: /remote|work from home|wfh/i.test(String(job.location || '') + String(job.description || '')),
+      url: sourceUrl,
+      applyUrl: sourceUrl,
+      sourceUrl: sourceUrl || undefined,
+      sourceLabel: sourceUrl ? `${source.label} (via Google)` : 'Google Jobs',
+      status: 'partial' as const,
+      postedDateText: job.detected_extensions?.posted_at,
+      employmentType: job.detected_extensions?.schedule_type,
+      snippet: cleanSnippet(job.description || ''),
+      rawPayload: { provider: 'serpapi-google-jobs', job },
+    };
+  }).filter((job) => Boolean(job.url));
+}
+
 export class GoogleJobsProvider implements ScrapeProvider {
   readonly id = 'google-jobs';
   readonly label = 'Google Jobs preview discovery';
@@ -645,6 +701,20 @@ export class GoogleJobsProvider implements ScrapeProvider {
     const googleQuery = searchTerm(input);
 
     await waitForScrapeDomainSlot('google_jobs', 1, 2_000);
+
+    // SerpAPI: structured Google Jobs data, no CAPTCHA, 100 free req/month
+    if (process.env.SERPAPI_API_KEY?.trim()) {
+      try {
+        input.onProgress?.('Querying Google Jobs via SerpAPI…');
+        const serpJobs = await runSerpApi(input);
+        if (serpJobs.length > 0) {
+          jobs = dedupeJobs([...jobs, ...serpJobs]);
+          input.onProgress?.(`SerpAPI returned ${serpJobs.length} Google Jobs results`);
+        }
+      } catch (error) {
+        failures.push(error instanceof Error ? error.message : String(error));
+      }
+    }
 
     if (hasPythonJobSpy()) {
       try {

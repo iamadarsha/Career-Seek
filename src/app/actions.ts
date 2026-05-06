@@ -6,6 +6,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { getDb } from '@/db';
 import {
+  appSettings,
   masterProfiles,
   searchProfiles,
   uploadedResumes,
@@ -958,5 +959,115 @@ export async function deleteProfile(profileId: number) {
     return { success: true };
   } catch (e: any) {
     return { success: false, error: e.message };
+  }
+}
+
+// ── Setup Wizard ─────────────────────────────────────────────────────────────
+
+/** Maps provider name → the env var name its API key lives under */
+const PROVIDER_ENV_KEY: Record<string, string> = {
+  gemini: 'GEMINI_API_KEY',
+  openai: 'OPENAI_API_KEY',
+  anthropic: 'ANTHROPIC_API_KEY',
+  groq: 'GROQ_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
+};
+
+/**
+ * Save all first-run credentials in one shot:
+ *  1. AI provider config → settings.json (marks provider as configured)
+ *  2. Optional portal creds → appSettings DB (key-value, upsert)
+ *  3. Everything → .env.local (preserving unrelated lines)
+ */
+export async function saveSetupCredentials(payload: {
+  aiProvider: string;
+  aiKey: string;
+  aiModel: string;
+  aiBaseUrl?: string;
+  linkedinEmail?: string;
+  linkedinPassword?: string;
+  naukriEmail?: string;
+  naukriPassword?: string;
+  serpApiKey?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { updateEnvFile } = await import('@/lib/env-writer');
+
+    const provider = normalizeProviderInput(payload.aiProvider);
+    const patch = buildProviderPatch(provider, {
+      apiKey: payload.aiKey,
+      model: payload.aiModel,
+      baseUrl: payload.aiBaseUrl,
+    });
+
+    // 1. Persist AI provider config to settings.json
+    saveAppConfig({
+      ...patch.next,
+      isConfigured: true,
+      lastKeyValidationAt: new Date().toISOString(),
+    });
+
+    // 2. Build env updates + DB upserts for optional credentials
+    const envUpdates: Record<string, string> = {};
+
+    // AI key
+    const aiEnvKey = PROVIDER_ENV_KEY[provider];
+    if (aiEnvKey && payload.aiKey.trim()) {
+      envUpdates[aiEnvKey] = payload.aiKey.trim();
+    }
+
+    const db = getDb();
+
+    function upsertSetting(key: string, value: string | undefined) {
+      if (!value?.trim()) return;
+      db.insert(appSettings)
+        .values({ key, value: value.trim() })
+        .onConflictDoUpdate({ target: appSettings.key, set: { value: value.trim() } })
+        .run();
+    }
+
+    function addCred(dbKey: string, envKey: string, value?: string) {
+      if (!value?.trim()) return;
+      upsertSetting(dbKey, value);
+      envUpdates[envKey] = value.trim();
+    }
+
+    addCred('linkedin_email',    'LINKEDIN_EMAIL',    payload.linkedinEmail);
+    addCred('linkedin_password', 'LINKEDIN_PASSWORD', payload.linkedinPassword);
+    addCred('naukri_email',      'NAUKRI_EMAIL',      payload.naukriEmail);
+    addCred('naukri_password',   'NAUKRI_PASSWORD',   payload.naukriPassword);
+    addCred('serpapi_key',       'SERPAPI_API_KEY',   payload.serpApiKey);
+
+    // 3. Write to .env.local
+    if (Object.keys(envUpdates).length > 0) {
+      updateEnvFile(envUpdates);
+    }
+
+    return { success: true };
+  } catch (e: any) {
+    logger.error('[saveSetupCredentials]', e);
+    return { success: false, error: e?.message || 'Failed to save credentials' };
+  }
+}
+
+/**
+ * Read back optional portal credentials that were previously saved to .env.local.
+ * Used to pre-fill the setup wizard on re-open (shows email but not password).
+ */
+export async function readSavedPortalCredentials(): Promise<{
+  linkedinEmail?: string;
+  naukriEmail?: string;
+  hasSerpApi: boolean;
+}> {
+  try {
+    const { readEnvKeys } = await import('@/lib/env-writer');
+    const vals = readEnvKeys(['LINKEDIN_EMAIL', 'NAUKRI_EMAIL', 'SERPAPI_API_KEY']);
+    return {
+      linkedinEmail: vals['LINKEDIN_EMAIL'] || undefined,
+      naukriEmail: vals['NAUKRI_EMAIL'] || undefined,
+      hasSerpApi: Boolean(vals['SERPAPI_API_KEY']),
+    };
+  } catch {
+    return { hasSerpApi: false };
   }
 }

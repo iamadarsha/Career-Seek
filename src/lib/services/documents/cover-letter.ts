@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { getDb } from '../../../db';
-import { masterProfiles } from '../../../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { masterProfiles, uploadedResumes } from '../../../db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 import { resolveContext } from '@/lib/platform/identity';
 import { generateDocumentJson, JdAnalysis, safeDocumentAiErrorMessage } from './analysis';
+import { COVER_LETTER_RULES } from './generation-rules';
 
 export const CoverLetterSchema = z.object({
   content: z.string(),
@@ -43,7 +44,8 @@ function uniqueStrings(values: unknown[], limit = 16) {
   return result;
 }
 
-function profileSourceText(profile: typeof masterProfiles.$inferSelect) {
+function profileSourceText(profile: typeof masterProfiles.$inferSelect, rawResumeText: string) {
+  if (rawResumeText.length > 200) return normalizeText(rawResumeText);
   return normalizeText([
     profile.fullName,
     profile.headline,
@@ -57,8 +59,8 @@ function profileSourceText(profile: typeof masterProfiles.$inferSelect) {
   ].filter(Boolean).join(' '));
 }
 
-function supportedTerms(profile: typeof masterProfiles.$inferSelect, jdAnalysis: JdAnalysis) {
-  const sourceText = profileSourceText(profile);
+function supportedTerms(profile: typeof masterProfiles.$inferSelect, jdAnalysis: JdAnalysis, rawResumeText: string) {
+  const sourceText = profileSourceText(profile, rawResumeText);
   return uniqueStrings([...jdAnalysis.mustHaveSkills, ...jdAnalysis.atsKeywords, ...jdAnalysis.toolRequirements])
     .filter((term) => {
       const normalized = normalizeText(term);
@@ -100,7 +102,7 @@ function unsupportedMetric(rawOutputText: string, normalizedSourceText: string) 
 
 function fallbackCoverLetter(profile: typeof masterProfiles.$inferSelect, jdAnalysis: JdAnalysis, jobContext: any) {
   const name = profile.fullName || '';
-  const skills = supportedTerms(profile, jdAnalysis).slice(0, 5);
+  const skills = supportedTerms(profile, jdAnalysis, '').slice(0, 5);
   const achievement = relevantAchievement(profile, skills, jobContext);
   const summary = conciseSummary(profile);
   const focus = skills.length
@@ -112,9 +114,16 @@ function fallbackCoverLetter(profile: typeof masterProfiles.$inferSelect, jdAnal
   return `Dear ${jobContext.company} Hiring Team,\n\nThe ${jobContext.title} role stands out because it connects directly to ${summary}.\n\n${focus} ${achievementSentence}\n\nI would welcome the opportunity to discuss how this background can support ${jobContext.company}'s current hiring priorities${jdAnalysis.hiringPriorities ? `: ${jdAnalysis.hiringPriorities}` : '.'}${signature}`;
 }
 
-function findGroundingIssue(content: string, profile: typeof masterProfiles.$inferSelect, jdAnalysis: JdAnalysis, jobContext: any) {
+function findGroundingIssue(
+  content: string,
+  profile: typeof masterProfiles.$inferSelect,
+  jdAnalysis: JdAnalysis,
+  jobContext: any,
+  rawResumeText: string,
+) {
   const outputText = normalizeText(content);
-  const sourceText = profileSourceText(profile);
+  const sourceText = profileSourceText(profile, rawResumeText);
+
   const foreignMarkers = ['asha mehta', 'fintech cloud india', 'saasworks', 'john doe', 'jane doe', 'sample candidate'];
   if (foreignMarkers.some((marker) => outputText.includes(marker) && !sourceText.includes(marker))) {
     return 'cover letter contains a sample/foreign profile marker';
@@ -139,84 +148,120 @@ function findGroundingIssue(content: string, profile: typeof masterProfiles.$inf
     .map(normalizeText)
     .filter((term) => term.length > 3);
   if (candidateSignals.length && !candidateSignals.some((term) => outputText.includes(term))) {
-    return 'cover letter does not include any selected profile signals';
+    return 'cover letter does not include any candidate profile signals';
   }
 
   const metric = unsupportedMetric(content, sourceText);
-  if (metric) return 'cover letter includes a metric not present in the selected profile';
+  if (metric) return `cover letter includes a metric not present in the source: ${metric}`;
 
   return null;
 }
 
+function buildCoverLetterPrompt(
+  profile: typeof masterProfiles.$inferSelect,
+  jdAnalysis: JdAnalysis,
+  jobContext: any,
+  rawResumeText: string,
+  strict: boolean = false,
+): string {
+  const terms = supportedTerms(profile, jdAnalysis, rawResumeText);
+  const strictNote = strict
+    ? '\nSTRICT MODE: Every claim must be directly traceable to the source material below. If you are unsure about any fact, omit it rather than guessing.\n'
+    : '';
+
+  const sourceBlock = rawResumeText.length > 200
+    ? `FULL RESUME / CV (primary source of truth — use this for all facts):
+---
+${rawResumeText}
+---`
+    : `CANDIDATE PROFILE (source of truth):
+Name: ${profile.fullName}
+Headline: ${profile.headline}
+Summary: ${profile.rawSummary}
+Experience: ${JSON.stringify(safeArray(profile.experience))}
+Skills: ${[...safeArray(profile.skillsExplicit), ...safeArray(profile.skillsInferred)].join(', ')}
+Tools: ${safeArray(profile.tools).join(', ')}
+Domains: ${safeArray(profile.domains).join(', ')}
+Achievements: ${safeArray(profile.achievements).join(' | ')}`;
+
+  return `${COVER_LETTER_RULES}
+${strictNote}
+========================
+COVER LETTER TASK
+========================
+
+${sourceBlock}
+
+TARGET JOB:
+Title: ${jobContext.title}
+Company: ${jobContext.company}
+Location: ${jobContext.location || 'Not specified'}
+Employment Type: ${jobContext.employmentType || 'Not specified'}
+JD Snippet: ${jobContext.snippet || 'No detailed description was available.'}
+Business Context: ${jdAnalysis.businessContext}
+Hiring Priorities: ${jdAnalysis.hiringPriorities}
+Must-have Skills: ${jdAnalysis.mustHaveSkills.join(', ')}
+Preferred Skills: ${jdAnalysis.preferredSkills.join(', ')}
+
+Profile-supported JD keywords (ONLY mention these skills/tools — do not invent others):
+${terms.length ? terms.join(', ') : 'No direct keyword overlap detected — focus on transferable experience.'}
+
+OUTPUT: Return a STRICT JSON object. Do NOT wrap in markdown fences.
+{
+  "content": "string (full cover letter text with paragraph breaks using \\n\\n)"
+}`;
+}
+
 export async function generateCoverLetter(
-  masterProfileId: number, 
-  jdAnalysis: JdAnalysis, 
-  jobContext: any
+  masterProfileId: number,
+  jdAnalysis: JdAnalysis,
+  jobContext: any,
 ): Promise<string | null> {
   const db = getDb();
   const { profileId } = resolveContext();
-  
-  const profile = db.select().from(masterProfiles).where(and(eq(masterProfiles.id, masterProfileId), eq(masterProfiles.profileId, profileId))).get();
-  if (!profile) throw new Error("Master profile not found or access denied");
 
-  const prompt = `
-    You are an expert executive cover letter writer.
-    Write a highly tailored, compelling cover letter for the candidate based on the job description.
+  const profile = db.select().from(masterProfiles)
+    .where(and(eq(masterProfiles.id, masterProfileId), eq(masterProfiles.profileId, profileId)))
+    .get();
+  if (!profile) throw new Error('Master profile not found or access denied');
 
-    RULES:
-    1. Do not use generic template phrasing like "I am writing to express my interest in...". Start with a strong, role-specific hook.
-    2. Write in the candidate's voice: professional, confident, and achievement-led.
-    3. Frame the candidate's experience against the company's business context and hiring priorities.
-    4. Keep it concise (3-4 paragraphs max).
-    5. Do not invent experience.
-    6. Do not invent or round metrics, employers, titles, tools, or achievements.
-    7. Mention JD requirements only where the candidate profile supports them.
-    8. Include the target company and role in the opening paragraph.
-    9. If the job description is thin or generic, be honest and specific rather than using broad praise.
-    
-    Candidate Master Profile:
-    Name: ${profile.fullName}
-    Headline: ${profile.headline}
-    Experience Summary: ${profile.rawSummary}
-    Experience: ${profile.experience}
-    Explicit Skills: ${profile.skillsExplicit}
-    Inferred Skills: ${profile.skillsInferred}
-    Tools: ${profile.tools}
-    Domains: ${profile.domains}
-    Key Achievements: ${profile.achievements}
-    Profile-supported JD overlap: ${supportedTerms(profile, jdAnalysis).join(', ') || 'No direct overlap detected'}
+  // Fetch raw resume text — primary source of truth for grounding
+  const uploadRow = db.select({ parsedText: uploadedResumes.parsedText })
+    .from(uploadedResumes)
+    .where(eq(uploadedResumes.profileId, profileId))
+    .orderBy(desc(uploadedResumes.uploadedAt))
+    .limit(1)
+    .get();
+  const rawResumeText = uploadRow?.parsedText?.trim() || '';
 
-    Target Job Context:
-    Title: ${jobContext.title}
-    Company: ${jobContext.company}
-    Location: ${jobContext.location || 'Not specified'}
-    Employment Type: ${jobContext.employmentType || 'Not specified'}
-    Selected JD Snippet: ${jobContext.snippet || 'No detailed description was available.'}
-    Business Context: ${jdAnalysis.businessContext}
-    Hiring Priorities: ${jdAnalysis.hiringPriorities}
-    Must-have Skills: ${jdAnalysis.mustHaveSkills.join(', ')}
-
-    Return a STRICT JSON object matching this schema:
-    {
-      "content": "string (The full text of the cover letter with proper paragraph breaks)"
-    }
-  `;
-
-  try {
+  const tryGenerate = async (temperature: number, strict: boolean): Promise<string | null> => {
+    const prompt = buildCoverLetterPrompt(profile, jdAnalysis, jobContext, rawResumeText, strict);
     const { data } = await generateDocumentJson(prompt, 'cover_letter', {
-      temperature: 0.7,
+      temperature,
       schema: CoverLetterSchema,
     });
     const validated = CoverLetterSchema.parse(data);
-    const groundingIssue = findGroundingIssue(validated.content, profile, jdAnalysis, jobContext);
+    const groundingIssue = findGroundingIssue(validated.content, profile, jdAnalysis, jobContext, rawResumeText);
     if (groundingIssue) {
-      console.warn(`AI cover letter failed grounding check; using deterministic fallback: ${groundingIssue}`);
-      return fallbackCoverLetter(profile, jdAnalysis, jobContext);
+      console.warn(`[cover-letter] Grounding check failed (temp=${temperature}): ${groundingIssue}`);
+      return null;
     }
-    
     return validated.content;
+  };
+
+  try {
+    const result = await tryGenerate(0.7, false);
+    if (result) return result;
+
+    // Retry with lower temperature and strict mode
+    console.warn('[cover-letter] First attempt failed grounding — retrying at temperature=0.4 strict');
+    const retryResult = await tryGenerate(0.4, true);
+    if (retryResult) return retryResult;
+
+    console.warn('[cover-letter] Both attempts failed grounding — using deterministic fallback');
+    return fallbackCoverLetter(profile, jdAnalysis, jobContext);
   } catch (error) {
-    console.error(`Failed to generate cover letter with the selected AI provider; using deterministic fallback: ${safeDocumentAiErrorMessage(error)}`);
+    console.error(`[cover-letter] AI generation failed — using deterministic fallback: ${safeDocumentAiErrorMessage(error)}`);
     return fallbackCoverLetter(profile, jdAnalysis, jobContext);
   }
 }
