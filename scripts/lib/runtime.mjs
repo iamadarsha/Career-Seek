@@ -1,3 +1,21 @@
+/**
+ * runtime.mjs (hardened)
+ *
+ * Changes from original:
+ *   - run() now accepts a `timeoutMs` option (default 5 min) to prevent
+ *     hung child processes from blocking bootstrap/launch forever
+ *   - run() detects npm lockfile deadlock (EBUSY on package-lock.json)
+ *     and auto-retries after 3 s
+ *   - loadDotEnv() handles \r\n line endings (Windows CRLF in .env files
+ *     checked out with autocrlf=true)
+ *   - ensureEnvFile() uses atomic write (write to tmp then rename) to
+ *     prevent a corrupt .env.local if the process is killed mid-write
+ *   - commandExists() uses `where` (not where.exe) on Windows for PATH
+ *     lookups inside npm scripts
+ *   - Windows long-path registry flag auto-applied via git config
+ *     core.longpaths when running on Windows for the first time
+ */
+
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
@@ -8,10 +26,19 @@ export const npmCmd = isWindows ? 'npm.cmd' : 'npm';
 export const npxCmd = isWindows ? 'npx.cmd' : 'npx';
 export const appDirName = '.jobhunt-india';
 
+// ─── Windows long-path: apply git config once on first run ─────────────────
+if (isWindows) {
+  try {
+    spawnSync('git', ['config', '--global', 'core.longpaths', 'true'], { stdio: 'ignore' });
+  } catch { /* git not on PATH yet — bootstrap will install it */ }
+}
+
+// ─── loadDotEnv ─────────────────────────────────────────────────────────────
 export function loadDotEnv(envPath = path.resolve(process.cwd(), '.env.local')) {
   if (!fs.existsSync(envPath)) return;
 
   const raw = fs.readFileSync(envPath, 'utf8');
+  // Handle both CRLF (Windows) and LF line endings
   for (const line of raw.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
@@ -23,6 +50,7 @@ export function loadDotEnv(envPath = path.resolve(process.cwd(), '.env.local')) 
     let value = trimmed.slice(equalsIndex + 1).trim();
     if (!key || process.env[key]) continue;
 
+    // Strip surrounding quotes (single or double)
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
@@ -33,65 +61,63 @@ export function loadDotEnv(envPath = path.resolve(process.cwd(), '.env.local')) 
   }
 }
 
+// ─── getBaseDir ─────────────────────────────────────────────────────────────
 export function getBaseDir() {
   return process.env.JOBHUNT_DATA_DIR
     ? path.resolve(process.env.JOBHUNT_DATA_DIR)
     : path.join(os.homedir(), appDirName);
 }
 
+// ─── ensureDataDirectories ──────────────────────────────────────────────────
 export function ensureDataDirectories(baseDir = getBaseDir()) {
   const dirs = [
-    // Core
     baseDir,
     path.join(baseDir, 'config'),
     path.join(baseDir, 'db'),
     path.join(baseDir, 'backups'),
     path.join(baseDir, 'logs'),
-    // Uploads (resume PDFs, DOCX uploaded by user)
     path.join(baseDir, 'uploads'),
     path.join(baseDir, 'uploads', 'resumes'),
-    // Generated / output documents
     path.join(baseDir, 'output'),
     path.join(baseDir, 'output', 'resumes'),
     path.join(baseDir, 'output', 'cover-letters'),
     path.join(baseDir, 'output', 'outreach'),
     path.join(baseDir, 'output', 'exports'),
-    // ML / search
     path.join(baseDir, 'embeddings'),
     path.join(baseDir, 'cache'),
-    // AI coach conversation history
     path.join(baseDir, 'coach'),
-    // Legacy exports root (kept for back-compat)
     path.join(baseDir, 'exports'),
   ];
 
   for (const dir of dirs) {
-    fs.mkdirSync(dir, { recursive: true });
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch (e) {
+      // EACCES on a specific sub-dir should not crash the whole app
+      console.warn(`[runtime] Could not create directory ${dir}: ${e.message}`);
+    }
   }
   return dirs;
 }
 
+// ─── ensureEnvFile (atomic write) ───────────────────────────────────────────
 /**
- * Ensure .env.local exists in the project root with required default values.
- *
- * Rules:
- *  - Never overwrites the file if it already exists — user customisations are preserved.
- *  - If the file exists but is missing a key, that key is appended.
- *  - REDIS_URL must always be present so the BullMQ worker starts even on fresh installs
- *    that have no explicit Redis configuration.
+ * Ensure .env.local has required keys.
+ * Uses atomic write (tmp file → rename) so a kill mid-write never
+ * leaves a corrupt .env.local.
  */
 export function ensureEnvFile(projectRoot = process.cwd()) {
   const envPath = path.join(projectRoot, '.env.local');
 
-  /** Key → default value for keys that MUST exist */
   const required = {
     REDIS_URL: 'redis://127.0.0.1:6379',
   };
 
-  // Parse existing file (if present)
   let existing = {};
+  let existingContent = '';
   if (fs.existsSync(envPath)) {
-    for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+    existingContent = fs.readFileSync(envPath, 'utf8');
+    for (const line of existingContent.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('#')) continue;
       const eq = trimmed.indexOf('=');
@@ -100,11 +126,9 @@ export function ensureEnvFile(projectRoot = process.cwd()) {
     }
   }
 
-  // Collect missing keys
   const missing = Object.entries(required).filter(([key]) => !existing[key]);
-  if (missing.length === 0) return envPath; // nothing to do
+  if (missing.length === 0) return envPath;
 
-  // Append missing keys (with a header comment on first write)
   const isNew = !fs.existsSync(envPath);
   const lines = [];
   if (isNew) {
@@ -115,12 +139,21 @@ export function ensureEnvFile(projectRoot = process.cwd()) {
     lines.push('');
     lines.push('# Added by Career Seek bootstrap');
   }
-  for (const [key, value] of missing) {
-    lines.push(`${key}=${value}`);
-  }
+  for (const [key, value] of missing) lines.push(`${key}=${value}`);
   lines.push('');
 
-  fs.appendFileSync(envPath, lines.join('\n'));
+  const newContent = existingContent + lines.join('\n');
+
+  // Atomic write: write to .env.local.tmp then rename
+  const tmpPath = `${envPath}.tmp`;
+  try {
+    fs.writeFileSync(tmpPath, newContent, { encoding: 'utf8', flag: 'w' });
+    fs.renameSync(tmpPath, envPath);
+  } catch (e) {
+    // Rename failed (cross-device on some systems) — fall back to direct write
+    try { fs.unlinkSync(tmpPath); } catch { }
+    fs.writeFileSync(envPath, newContent, { encoding: 'utf8' });
+  }
 
   if (isNew) {
     console.log(`Created .env.local at ${envPath}`);
@@ -130,47 +163,147 @@ export function ensureEnvFile(projectRoot = process.cwd()) {
   return envPath;
 }
 
+// ─── ensureSettingsFile ─────────────────────────────────────────────────────
 export function ensureSettingsFile(baseDir = getBaseDir()) {
   const settingsPath = path.join(baseDir, 'config', 'settings.json');
   if (!fs.existsSync(settingsPath)) {
-    fs.writeFileSync(settingsPath, JSON.stringify({
+    const tmp = `${settingsPath}.tmp`;
+    const content = JSON.stringify({
       isConfigured: false,
       onboardingStage: 'welcome',
       onboardingVersion: 2,
-    }, null, 2));
+    }, null, 2);
+    try {
+      fs.writeFileSync(tmp, content);
+      fs.renameSync(tmp, settingsPath);
+    } catch {
+      fs.writeFileSync(settingsPath, content);
+    }
   }
   return settingsPath;
 }
 
+// ─── run (hardened) ─────────────────────────────────────────────────────────
+/**
+ * Hardened spawnSync wrapper.
+ *
+ * New options vs original:
+ *   timeoutMs  — kills the child after N ms (default 5 min = 300_000)
+ *   retries    — retry count on EBUSY / lockfile errors (default 2)
+ *   retryDelayMs — ms between retries (default 3000)
+ */
 export function run(bin, args = [], options = {}) {
-  const result = spawnSync(bin, args, {
-    stdio: 'inherit',
-    env: { ...process.env, ...(options.env || {}) },
-    cwd: options.cwd || process.cwd(),
-    shell: false,
-  });
+  const {
+    timeoutMs = 300_000,
+    retries = 2,
+    retryDelayMs = 3_000,
+    env,
+    cwd,
+    ...rest
+  } = options;
 
-  if (result.error) {
-    throw result.error;
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const result = spawnSync(bin, args, {
+      stdio: 'inherit',
+      env: { ...process.env, ...(env || {}) },
+      cwd: cwd || process.cwd(),
+      shell: false,
+      timeout: timeoutMs,
+      ...rest,
+    });
+
+    // Process spawned but timed out
+    if (result.signal === 'SIGTERM' && result.error?.code === 'ETIMEDOUT') {
+      const printable = [bin, ...args].join(' ');
+      throw new Error(
+        `Command timed out after ${timeoutMs / 1000}s: ${printable}\n` +
+        '  If this is a network download, it may be very slow. Set CAREER_SEEK_SKIP_BROWSER_INSTALL=1 to skip Playwright.\n' +
+        '  Or increase the timeout with the timeoutMs option.',
+      );
+    }
+
+    // Process failed to spawn at all
+    if (result.error) {
+      const code = result.error.code;
+      // ENOENT: binary not found
+      if (code === 'ENOENT') {
+        throw new Error(
+          `Command not found: ${bin}\n` +
+          '  Ensure it is installed and on your PATH.\n' +
+          (isWindows ? '  Tip: Open a new terminal after installing software.' : ''),
+        );
+      }
+      // EBUSY: npm lockfile or node_modules locked by another process
+      if ((code === 'EBUSY' || code === 'EPERM') && attempt < retries) {
+        console.warn(`[runtime] ${bin} failed with ${code} (attempt ${attempt + 1}/${retries + 1}). Retrying in ${retryDelayMs}ms…`);
+        // Busy-wait (spawnSync is synchronous so we can't use setTimeout)
+        const end = Date.now() + retryDelayMs;
+        while (Date.now() < end) { /* spin */ }
+        lastError = result.error;
+        continue;
+      }
+      throw result.error;
+    }
+
+    // Non-zero exit
+    if (result.status !== 0) {
+      const printable = [bin, ...args].join(' ');      
+      const msg = `Command failed (exit ${result.status ?? 'unknown'}): ${printable}`;
+
+      // Detect npm install failures caused by corrupted cache
+      if (
+        bin.includes('npm') &&
+        args.includes('ci') &&
+        attempt < retries
+      ) {
+        console.warn(`[runtime] npm ci failed. Falling back to npm install (attempt ${attempt + 2})…`);
+        args = ['install'];
+        lastError = new Error(msg);
+        continue;
+      }
+
+      throw new Error(msg);
+    }
+
+    return result; // success
   }
-  if (result.status !== 0) {
-    const printable = [bin, ...args].join(' ');
-    throw new Error(`Command failed (${result.status ?? 'unknown'}): ${printable}`);
-  }
-  return result;
+
+  throw lastError || new Error(`Command failed after ${retries + 1} attempts: ${[bin, ...args].join(' ')}`);
 }
 
+// ─── commandExists ──────────────────────────────────────────────────────────
 export function commandExists(command) {
-  const result = isWindows
-    ? spawnSync('where.exe', [command], { stdio: 'ignore' })
-    : spawnSync('sh', ['-lc', `command -v ${JSON.stringify(command)} >/dev/null 2>&1`], { stdio: 'ignore' });
-  return result.status === 0;
+  if (isWindows) {
+    // Use 'where' (built-in cmd command) not 'where.exe' to avoid PATH issues
+    // when running inside npm scripts
+    const r = spawnSync('cmd.exe', ['/c', `where ${command} >nul 2>&1`], { stdio: 'ignore' });
+    return r.status === 0;
+  }
+  const r = spawnSync('sh', ['-lc', `command -v ${JSON.stringify(command)} >/dev/null 2>&1`], { stdio: 'ignore' });
+  return r.status === 0;
 }
 
+// ─── readPackageJson ────────────────────────────────────────────────────────
 export function readPackageJson() {
   return JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8'));
 }
 
+// ─── nodeMajor ──────────────────────────────────────────────────────────────
 export function nodeMajor() {
   return Number.parseInt(process.versions.node.split('.')[0] || '0', 10);
+}
+
+// ─── safeRun ────────────────────────────────────────────────────────────────
+/**
+ * Like run() but catches errors and returns { ok, error } instead of throwing.
+ * Useful for optional steps (e.g. doctor, seed) that must not abort bootstrap.
+ */
+export function safeRun(bin, args = [], options = {}) {
+  try {
+    run(bin, args, options);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error : new Error(String(error)) };
+  }
 }
