@@ -16,6 +16,7 @@ import { OfficialCompaniesAdapter } from './adapters/official-companies';
 import { CompanyAtsAdapter } from './adapters/company-ats';
 import { GoogleJobsDiscoveryAdapter } from './adapters/google-jobs';
 import { JobSpyFallbackAdapter } from './adapters/jobspy-fallback';
+import { JobSpyApiAdapter } from './adapters/jobspy-api';
 import { CONFIGURED_INDIA_SOURCES, ConfiguredSourceAdapter } from './adapters/configured-sources';
 import { BasePortalAdapter } from './adapters/base';
 import { ValidationFailAdapter, ValidationSeedAdapter } from './adapters/validation';
@@ -116,6 +117,7 @@ export class ScanOrchestrator {
     this.adapters.set('company_ats', new CompanyAtsAdapter());
     this.adapters.set('google_jobs', new GoogleJobsDiscoveryAdapter());
     this.adapters.set('jobspy', new JobSpyFallbackAdapter());
+    this.adapters.set('jobspy_api', new JobSpyApiAdapter()); // HTTP-direct, no browser needed
     this.adapters.set('linkedin', new LinkedInAdapter());
     this.adapters.set('naukri', new NaukriAdapter());
     this.adapters.set('foundit', new FounditAdapter());

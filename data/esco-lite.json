@@ -1,0 +1,2064 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-07T06:46:50.495Z",
+  "source": "career-seek-enriched-v2",
+  "skills": [
+    {
+      "id": "javascript",
+      "label": "JavaScript",
+      "altLabels": [
+        "JS",
+        "ECMAScript",
+        "ES6",
+        "ES2015"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "typescript",
+      "label": "TypeScript",
+      "altLabels": [
+        "TS"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "python",
+      "label": "Python",
+      "altLabels": [
+        "Python 3",
+        "Python programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "java",
+      "label": "Java",
+      "altLabels": [
+        "Java programming",
+        "Core Java",
+        "Java SE",
+        "Java EE"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "kotlin",
+      "label": "Kotlin",
+      "altLabels": [
+        "Kotlin programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "scala",
+      "label": "Scala",
+      "altLabels": [
+        "Scala programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "go",
+      "label": "Go",
+      "altLabels": [
+        "Golang",
+        "Go programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "rust",
+      "label": "Rust",
+      "altLabels": [
+        "Rust programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "c",
+      "label": "C",
+      "altLabels": [
+        "C programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "cpp",
+      "label": "C++",
+      "altLabels": [
+        "C plus plus",
+        "CPP"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "csharp",
+      "label": "C#",
+      "altLabels": [
+        "C sharp",
+        "dotnet csharp"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "ruby",
+      "label": "Ruby",
+      "altLabels": [
+        "Ruby programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "php",
+      "label": "PHP",
+      "altLabels": [
+        "PHP programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "swift",
+      "label": "Swift",
+      "altLabels": [
+        "Swift programming",
+        "iOS Swift"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "r",
+      "label": "R",
+      "altLabels": [
+        "R programming",
+        "R language"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "matlab",
+      "label": "MATLAB",
+      "altLabels": [
+        "Matlab programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "perl",
+      "label": "Perl",
+      "altLabels": [
+        "Perl programming"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "bash",
+      "label": "Bash",
+      "altLabels": [
+        "Shell scripting",
+        "Bash scripting",
+        "Shell script"
+      ],
+      "group": "programming languages"
+    },
+    {
+      "id": "sql",
+      "label": "SQL",
+      "altLabels": [
+        "Structured Query Language",
+        "MySQL SQL",
+        "ANSI SQL"
+      ],
+      "group": "data"
+    },
+    {
+      "id": "plsql",
+      "label": "PL/SQL",
+      "altLabels": [
+        "Oracle PL/SQL",
+        "PLSQL"
+      ],
+      "group": "data"
+    },
+    {
+      "id": "tsql",
+      "label": "T-SQL",
+      "altLabels": [
+        "Transact SQL",
+        "Microsoft SQL Server scripting"
+      ],
+      "group": "data"
+    },
+    {
+      "id": "react",
+      "label": "React",
+      "altLabels": [
+        "React.js",
+        "ReactJS",
+        "React Hooks",
+        "React Context"
+      ],
+      "group": "frontend frameworks"
+    },
+    {
+      "id": "nextjs",
+      "label": "Next.js",
+      "altLabels": [
+        "NextJS",
+        "Next",
+        "Next 13",
+        "Next 14",
+        "App Router"
+      ],
+      "group": "frontend frameworks"
+    },
+    {
+      "id": "vuejs",
+      "label": "Vue.js",
+      "altLabels": [
+        "Vue",
+        "VueJS",
+        "Vue 3",
+        "Vue Composition API"
+      ],
+      "group": "frontend frameworks"
+    },
+    {
+      "id": "angular",
+      "label": "Angular",
+      "altLabels": [
+        "AngularJS",
+        "Angular 2+",
+        "Angular 17"
+      ],
+      "group": "frontend frameworks"
+    },
+    {
+      "id": "svelte",
+      "label": "Svelte",
+      "altLabels": [
+        "SvelteKit"
+      ],
+      "group": "frontend frameworks"
+    },
+    {
+      "id": "redux",
+      "label": "Redux",
+      "altLabels": [
+        "Redux Toolkit",
+        "RTK",
+        "Redux Saga",
+        "Redux Thunk"
+      ],
+      "group": "frontend frameworks"
+    },
+    {
+      "id": "tailwind",
+      "label": "Tailwind CSS",
+      "altLabels": [
+        "Tailwind",
+        "TailwindCSS"
+      ],
+      "group": "frontend frameworks"
+    },
+    {
+      "id": "html",
+      "label": "HTML",
+      "altLabels": [
+        "HTML5",
+        "HTML/CSS"
+      ],
+      "group": "frontend fundamentals"
+    },
+    {
+      "id": "css",
+      "label": "CSS",
+      "altLabels": [
+        "CSS3",
+        "CSS animations",
+        "CSS Grid",
+        "Flexbox"
+      ],
+      "group": "frontend fundamentals"
+    },
+    {
+      "id": "sass",
+      "label": "Sass/SCSS",
+      "altLabels": [
+        "SASS",
+        "SCSS",
+        "Less CSS"
+      ],
+      "group": "frontend fundamentals"
+    },
+    {
+      "id": "webpack",
+      "label": "Webpack",
+      "altLabels": [
+        "Webpack bundler"
+      ],
+      "group": "build tools"
+    },
+    {
+      "id": "vite",
+      "label": "Vite",
+      "altLabels": [
+        "Vite build tool"
+      ],
+      "group": "build tools"
+    },
+    {
+      "id": "storybook",
+      "label": "Storybook",
+      "altLabels": [
+        "Component library",
+        "UI component documentation"
+      ],
+      "group": "build tools"
+    },
+    {
+      "id": "graphql",
+      "label": "GraphQL",
+      "altLabels": [
+        "GraphQL API",
+        "Apollo GraphQL"
+      ],
+      "group": "api design"
+    },
+    {
+      "id": "rest-api",
+      "label": "REST APIs",
+      "altLabels": [
+        "RESTful APIs",
+        "REST",
+        "RESTful web services"
+      ],
+      "group": "api design"
+    },
+    {
+      "id": "nodejs",
+      "label": "Node.js",
+      "altLabels": [
+        "NodeJS",
+        "Node",
+        "server-side JavaScript"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "express",
+      "label": "Express.js",
+      "altLabels": [
+        "ExpressJS",
+        "Express framework"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "nestjs",
+      "label": "NestJS",
+      "altLabels": [
+        "Nest",
+        "NestJS framework"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "fastapi",
+      "label": "FastAPI",
+      "altLabels": [
+        "Fast API"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "django",
+      "label": "Django",
+      "altLabels": [
+        "Django REST framework",
+        "DRF",
+        "Django Python"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "flask",
+      "label": "Flask",
+      "altLabels": [
+        "Flask Python"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "spring",
+      "label": "Spring Framework",
+      "altLabels": [
+        "Spring Boot",
+        "Spring MVC",
+        "Spring Cloud",
+        "Spring Security"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "rails",
+      "label": "Ruby on Rails",
+      "altLabels": [
+        "Rails",
+        "RoR"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "laravel",
+      "label": "Laravel",
+      "altLabels": [
+        "Laravel PHP"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "dotnet",
+      "label": ".NET",
+      "altLabels": [
+        ".NET Core",
+        "ASP.NET",
+        "ASP.NET Core",
+        "dotnet"
+      ],
+      "group": "backend frameworks"
+    },
+    {
+      "id": "grpc",
+      "label": "gRPC",
+      "altLabels": [
+        "gRPC API",
+        "Protocol Buffers",
+        "Protobuf"
+      ],
+      "group": "api design"
+    },
+    {
+      "id": "react-native",
+      "label": "React Native",
+      "altLabels": [
+        "React Native mobile",
+        "RN"
+      ],
+      "group": "mobile development"
+    },
+    {
+      "id": "flutter",
+      "label": "Flutter",
+      "altLabels": [
+        "Flutter Dart"
+      ],
+      "group": "mobile development"
+    },
+    {
+      "id": "android",
+      "label": "Android Development",
+      "altLabels": [
+        "Android SDK",
+        "Android Studio",
+        "Android app"
+      ],
+      "group": "mobile development"
+    },
+    {
+      "id": "ios",
+      "label": "iOS Development",
+      "altLabels": [
+        "iOS SDK",
+        "Xcode",
+        "UIKit",
+        "SwiftUI"
+      ],
+      "group": "mobile development"
+    },
+    {
+      "id": "postgresql",
+      "label": "PostgreSQL",
+      "altLabels": [
+        "Postgres",
+        "pg"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "mysql",
+      "label": "MySQL",
+      "altLabels": [
+        "MySQL database"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "mongodb",
+      "label": "MongoDB",
+      "altLabels": [
+        "Mongo",
+        "NoSQL MongoDB"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "redis",
+      "label": "Redis",
+      "altLabels": [
+        "Redis cache",
+        "Redis queue"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "elasticsearch",
+      "label": "Elasticsearch",
+      "altLabels": [
+        "Elastic Search",
+        "ELK",
+        "OpenSearch"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "cassandra",
+      "label": "Apache Cassandra",
+      "altLabels": [
+        "Cassandra NoSQL"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "dynamodb",
+      "label": "DynamoDB",
+      "altLabels": [
+        "AWS DynamoDB",
+        "Amazon DynamoDB"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "oracle-db",
+      "label": "Oracle Database",
+      "altLabels": [
+        "Oracle DB",
+        "Oracle RDBMS",
+        "Oracle 19c"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "mssql",
+      "label": "Microsoft SQL Server",
+      "altLabels": [
+        "SQL Server",
+        "MSSQL",
+        "Azure SQL"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "sqlite",
+      "label": "SQLite",
+      "altLabels": [
+        "SQLite database"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "neo4j",
+      "label": "Neo4j",
+      "altLabels": [
+        "Graph database",
+        "Neo4j graph"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "snowflake",
+      "label": "Snowflake",
+      "altLabels": [
+        "Snowflake data warehouse"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "bigquery",
+      "label": "Google BigQuery",
+      "altLabels": [
+        "BigQuery",
+        "GCP BigQuery"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "redshift",
+      "label": "Amazon Redshift",
+      "altLabels": [
+        "Redshift",
+        "AWS Redshift"
+      ],
+      "group": "databases"
+    },
+    {
+      "id": "aws",
+      "label": "Amazon Web Services",
+      "altLabels": [
+        "AWS",
+        "Amazon cloud"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "azure",
+      "label": "Microsoft Azure",
+      "altLabels": [
+        "Azure",
+        "Azure cloud",
+        "Azure DevOps"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "gcp",
+      "label": "Google Cloud Platform",
+      "altLabels": [
+        "GCP",
+        "Google Cloud"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "aws-lambda",
+      "label": "AWS Lambda",
+      "altLabels": [
+        "Lambda functions",
+        "Serverless AWS"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "aws-s3",
+      "label": "Amazon S3",
+      "altLabels": [
+        "S3 bucket",
+        "AWS storage"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "aws-ec2",
+      "label": "Amazon EC2",
+      "altLabels": [
+        "EC2 instances",
+        "AWS compute"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "aws-ecs",
+      "label": "Amazon ECS/EKS",
+      "altLabels": [
+        "ECS",
+        "EKS",
+        "AWS containers"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "aws-rds",
+      "label": "Amazon RDS",
+      "altLabels": [
+        "RDS database",
+        "AWS database"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "azure-functions",
+      "label": "Azure Functions",
+      "altLabels": [
+        "Azure serverless",
+        "Azure Functions app"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "cloudflare",
+      "label": "Cloudflare",
+      "altLabels": [
+        "Cloudflare Workers",
+        "Cloudflare CDN"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "vercel",
+      "label": "Vercel",
+      "altLabels": [
+        "Vercel deployment",
+        "Vercel platform"
+      ],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "netlify",
+      "label": "Netlify",
+      "altLabels": [],
+      "group": "cloud platforms"
+    },
+    {
+      "id": "docker",
+      "label": "Docker",
+      "altLabels": [
+        "Docker containers",
+        "containerisation",
+        "containerization",
+        "Dockerfile"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "kubernetes",
+      "label": "Kubernetes",
+      "altLabels": [
+        "K8s",
+        "Helm",
+        "Kubernetes orchestration"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "terraform",
+      "label": "Terraform",
+      "altLabels": [
+        "IaC",
+        "Infrastructure as Code",
+        "Terraform HCL"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "ansible",
+      "label": "Ansible",
+      "altLabels": [
+        "Ansible automation",
+        "Ansible playbooks"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "ci-cd",
+      "label": "CI/CD",
+      "altLabels": [
+        "continuous integration",
+        "continuous deployment",
+        "continuous delivery"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "github-actions",
+      "label": "GitHub Actions",
+      "altLabels": [
+        "GH Actions"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "jenkins",
+      "label": "Jenkins",
+      "altLabels": [
+        "Jenkins CI",
+        "Jenkins pipeline"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "gitlab-ci",
+      "label": "GitLab CI/CD",
+      "altLabels": [
+        "GitLab pipelines"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "git",
+      "label": "Git",
+      "altLabels": [
+        "version control",
+        "Git VCS"
+      ],
+      "group": "developer tools"
+    },
+    {
+      "id": "github",
+      "label": "GitHub",
+      "altLabels": [
+        "GitHub platform",
+        "GitHub PRs"
+      ],
+      "group": "developer tools"
+    },
+    {
+      "id": "nginx",
+      "label": "Nginx",
+      "altLabels": [
+        "nginx web server",
+        "nginx reverse proxy"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "linux",
+      "label": "Linux",
+      "altLabels": [
+        "Linux administration",
+        "Ubuntu",
+        "CentOS",
+        "RHEL",
+        "Debian"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "prometheus",
+      "label": "Prometheus",
+      "altLabels": [
+        "Prometheus monitoring"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "grafana",
+      "label": "Grafana",
+      "altLabels": [
+        "Grafana dashboards"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "datadog",
+      "label": "Datadog",
+      "altLabels": [
+        "Datadog monitoring",
+        "APM"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "new-relic",
+      "label": "New Relic",
+      "altLabels": [
+        "NewRelic observability"
+      ],
+      "group": "devops"
+    },
+    {
+      "id": "machine-learning",
+      "label": "Machine learning",
+      "altLabels": [
+        "ML",
+        "supervised learning",
+        "unsupervised learning"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "deep-learning",
+      "label": "Deep learning",
+      "altLabels": [
+        "neural networks",
+        "DL"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "nlp",
+      "label": "Natural language processing",
+      "altLabels": [
+        "NLP",
+        "text analytics"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "llm",
+      "label": "Large language models",
+      "altLabels": [
+        "LLM",
+        "LLMs",
+        "GPT",
+        "ChatGPT API"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "rag",
+      "label": "Retrieval augmented generation",
+      "altLabels": [
+        "RAG",
+        "vector search"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "pytorch",
+      "label": "PyTorch",
+      "altLabels": [
+        "Torch",
+        "PyTorch deep learning"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "tensorflow",
+      "label": "TensorFlow",
+      "altLabels": [
+        "TF",
+        "TensorFlow Keras"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "scikit-learn",
+      "label": "scikit-learn",
+      "altLabels": [
+        "sklearn",
+        "Scikit Learn"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "huggingface",
+      "label": "Hugging Face",
+      "altLabels": [
+        "Transformers library",
+        "HuggingFace"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "langchain",
+      "label": "LangChain",
+      "altLabels": [
+        "LangChain framework"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "openai-api",
+      "label": "OpenAI API",
+      "altLabels": [
+        "GPT API",
+        "OpenAI"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "pandas",
+      "label": "Pandas",
+      "altLabels": [
+        "Pandas dataframe"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "numpy",
+      "label": "NumPy",
+      "altLabels": [
+        "Numpy array"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "spark",
+      "label": "Apache Spark",
+      "altLabels": [
+        "PySpark",
+        "Spark streaming",
+        "Databricks"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "kafka",
+      "label": "Apache Kafka",
+      "altLabels": [
+        "Kafka streaming",
+        "event streaming"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "airflow",
+      "label": "Apache Airflow",
+      "altLabels": [
+        "Airflow DAGs",
+        "workflow orchestration"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "dbt",
+      "label": "dbt",
+      "altLabels": [
+        "data build tool",
+        "dbt models"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "data-analysis",
+      "label": "Data analysis",
+      "altLabels": [
+        "analytics",
+        "data analytics"
+      ],
+      "group": "data"
+    },
+    {
+      "id": "data-visualization",
+      "label": "Data visualization",
+      "altLabels": [
+        "data visualisation",
+        "charting"
+      ],
+      "group": "data"
+    },
+    {
+      "id": "statistics",
+      "label": "Statistics",
+      "altLabels": [
+        "statistical analysis",
+        "statistical modeling"
+      ],
+      "group": "data"
+    },
+    {
+      "id": "a-b-testing",
+      "label": "A/B testing",
+      "altLabels": [
+        "experimentation",
+        "split testing",
+        "hypothesis testing"
+      ],
+      "group": "growth"
+    },
+    {
+      "id": "etl",
+      "label": "ETL",
+      "altLabels": [
+        "Extract Transform Load",
+        "data pipelines",
+        "ELT"
+      ],
+      "group": "data"
+    },
+    {
+      "id": "feature-engineering",
+      "label": "Feature engineering",
+      "altLabels": [
+        "ML features",
+        "feature selection"
+      ],
+      "group": "machine learning"
+    },
+    {
+      "id": "power-bi",
+      "label": "Power BI",
+      "altLabels": [
+        "Microsoft Power BI",
+        "PowerBI",
+        "Power BI Desktop"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "tableau",
+      "label": "Tableau",
+      "altLabels": [
+        "Tableau Desktop",
+        "Tableau Server",
+        "Tableau Public"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "looker",
+      "label": "Looker",
+      "altLabels": [
+        "Looker Studio",
+        "Google Looker",
+        "LookML"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "excel",
+      "label": "Microsoft Excel",
+      "altLabels": [
+        "Excel",
+        "Excel VBA",
+        "Excel pivot tables",
+        "advanced Excel"
+      ],
+      "group": "office tools"
+    },
+    {
+      "id": "google-sheets",
+      "label": "Google Sheets",
+      "altLabels": [
+        "G Sheets",
+        "Sheets"
+      ],
+      "group": "office tools"
+    },
+    {
+      "id": "sql-reporting",
+      "label": "SQL reporting",
+      "altLabels": [
+        "SQL dashboards",
+        "business intelligence SQL"
+      ],
+      "group": "data tools"
+    },
+    {
+      "id": "salesforce",
+      "label": "Salesforce",
+      "altLabels": [
+        "Salesforce CRM",
+        "SFDC",
+        "Salesforce admin",
+        "Salesforce dev",
+        "Apex"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "sap",
+      "label": "SAP",
+      "altLabels": [
+        "SAP ERP",
+        "SAP HANA",
+        "SAP S/4HANA",
+        "SAP BW",
+        "SAP ABAP"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "oracle-erp",
+      "label": "Oracle ERP",
+      "altLabels": [
+        "Oracle Fusion",
+        "Oracle Cloud ERP",
+        "Oracle Applications"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "jira",
+      "label": "Jira",
+      "altLabels": [
+        "Atlassian Jira",
+        "Jira Software",
+        "Jira tickets"
+      ],
+      "group": "project tools"
+    },
+    {
+      "id": "confluence",
+      "label": "Confluence",
+      "altLabels": [
+        "Atlassian Confluence",
+        "Confluence wiki"
+      ],
+      "group": "project tools"
+    },
+    {
+      "id": "notion",
+      "label": "Notion",
+      "altLabels": [
+        "Notion workspace"
+      ],
+      "group": "project tools"
+    },
+    {
+      "id": "slack",
+      "label": "Slack",
+      "altLabels": [
+        "Slack communication"
+      ],
+      "group": "office tools"
+    },
+    {
+      "id": "hubspot",
+      "label": "HubSpot",
+      "altLabels": [
+        "HubSpot CRM",
+        "HubSpot marketing"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "zendesk",
+      "label": "Zendesk",
+      "altLabels": [
+        "Zendesk support"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "servicenow",
+      "label": "ServiceNow",
+      "altLabels": [
+        "ServiceNow ITSM"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "cybersecurity",
+      "label": "Cybersecurity",
+      "altLabels": [
+        "information security",
+        "infosec",
+        "cyber security"
+      ],
+      "group": "security"
+    },
+    {
+      "id": "penetration-testing",
+      "label": "Penetration testing",
+      "altLabels": [
+        "pen testing",
+        "ethical hacking",
+        "VAPT"
+      ],
+      "group": "security"
+    },
+    {
+      "id": "owasp",
+      "label": "OWASP",
+      "altLabels": [
+        "OWASP Top 10",
+        "web security"
+      ],
+      "group": "security"
+    },
+    {
+      "id": "soc2",
+      "label": "SOC 2",
+      "altLabels": [
+        "SOC2 compliance",
+        "audit readiness"
+      ],
+      "group": "security"
+    },
+    {
+      "id": "iso27001",
+      "label": "ISO 27001",
+      "altLabels": [
+        "ISO 27001 compliance",
+        "ISMS"
+      ],
+      "group": "security"
+    },
+    {
+      "id": "gdpr",
+      "label": "GDPR",
+      "altLabels": [
+        "data protection",
+        "privacy compliance"
+      ],
+      "group": "security"
+    },
+    {
+      "id": "oauth",
+      "label": "OAuth",
+      "altLabels": [
+        "OAuth2",
+        "OIDC",
+        "SSO"
+      ],
+      "group": "security"
+    },
+    {
+      "id": "jwt",
+      "label": "JWT",
+      "altLabels": [
+        "JSON Web Token",
+        "token authentication"
+      ],
+      "group": "security"
+    },
+    {
+      "id": "quality-assurance",
+      "label": "Quality assurance",
+      "altLabels": [
+        "QA",
+        "software testing",
+        "QC"
+      ],
+      "group": "quality"
+    },
+    {
+      "id": "unit-testing",
+      "label": "Unit testing",
+      "altLabels": [
+        "Jest",
+        "JUnit",
+        "pytest",
+        "unit tests"
+      ],
+      "group": "quality"
+    },
+    {
+      "id": "e2e-testing",
+      "label": "End-to-end testing",
+      "altLabels": [
+        "E2E",
+        "Selenium",
+        "Playwright",
+        "Cypress",
+        "automation testing"
+      ],
+      "group": "quality"
+    },
+    {
+      "id": "api-testing",
+      "label": "API testing",
+      "altLabels": [
+        "Postman",
+        "REST Assured",
+        "API automation"
+      ],
+      "group": "quality"
+    },
+    {
+      "id": "tdd",
+      "label": "Test-driven development",
+      "altLabels": [
+        "TDD",
+        "BDD",
+        "test driven"
+      ],
+      "group": "quality"
+    },
+    {
+      "id": "performance-testing",
+      "label": "Performance testing",
+      "altLabels": [
+        "load testing",
+        "JMeter",
+        "k6"
+      ],
+      "group": "quality"
+    },
+    {
+      "id": "microservices",
+      "label": "Microservices",
+      "altLabels": [
+        "microservices architecture",
+        "service mesh",
+        "MSA"
+      ],
+      "group": "architecture"
+    },
+    {
+      "id": "system-design",
+      "label": "System design",
+      "altLabels": [
+        "distributed systems design",
+        "HLD",
+        "LLD"
+      ],
+      "group": "architecture"
+    },
+    {
+      "id": "distributed-systems",
+      "label": "Distributed systems",
+      "altLabels": [
+        "CAP theorem",
+        "event-driven architecture"
+      ],
+      "group": "architecture"
+    },
+    {
+      "id": "event-driven",
+      "label": "Event-driven architecture",
+      "altLabels": [
+        "EDA",
+        "message queues",
+        "pub/sub"
+      ],
+      "group": "architecture"
+    },
+    {
+      "id": "serverless",
+      "label": "Serverless",
+      "altLabels": [
+        "FaaS",
+        "serverless architecture",
+        "functions as a service"
+      ],
+      "group": "architecture"
+    },
+    {
+      "id": "api-design",
+      "label": "API design",
+      "altLabels": [
+        "API architecture",
+        "REST design",
+        "API-first"
+      ],
+      "group": "api design"
+    },
+    {
+      "id": "clean-architecture",
+      "label": "Clean Architecture",
+      "altLabels": [
+        "SOLID principles",
+        "DDD",
+        "domain-driven design"
+      ],
+      "group": "architecture"
+    },
+    {
+      "id": "product-management",
+      "label": "Product management",
+      "altLabels": [
+        "PM",
+        "product strategy",
+        "product manager",
+        "CPO"
+      ],
+      "group": "product"
+    },
+    {
+      "id": "roadmapping",
+      "label": "Roadmapping",
+      "altLabels": [
+        "product roadmap",
+        "product planning",
+        "product backlog"
+      ],
+      "group": "product"
+    },
+    {
+      "id": "customer-discovery",
+      "label": "Customer discovery",
+      "altLabels": [
+        "user discovery",
+        "problem validation",
+        "customer interviews"
+      ],
+      "group": "product"
+    },
+    {
+      "id": "user-research",
+      "label": "User research",
+      "altLabels": [
+        "UX research",
+        "usability research",
+        "user interviews"
+      ],
+      "group": "research"
+    },
+    {
+      "id": "product-analytics",
+      "label": "Product analytics",
+      "altLabels": [
+        "product metrics",
+        "funnel analysis",
+        "North Star metric"
+      ],
+      "group": "product"
+    },
+    {
+      "id": "go-to-market",
+      "label": "Go-to-market strategy",
+      "altLabels": [
+        "GTM",
+        "launch strategy",
+        "market entry"
+      ],
+      "group": "growth"
+    },
+    {
+      "id": "product-led-growth",
+      "label": "Product-led growth",
+      "altLabels": [
+        "PLG",
+        "self-serve growth"
+      ],
+      "group": "growth"
+    },
+    {
+      "id": "okrs",
+      "label": "OKRs",
+      "altLabels": [
+        "Objectives and Key Results",
+        "goal setting framework"
+      ],
+      "group": "management"
+    },
+    {
+      "id": "user-stories",
+      "label": "User stories",
+      "altLabels": [
+        "backlog grooming",
+        "story mapping",
+        "epic writing"
+      ],
+      "group": "product"
+    },
+    {
+      "id": "prioritization",
+      "label": "Prioritization",
+      "altLabels": [
+        "RICE scoring",
+        "MoSCoW",
+        "feature prioritization"
+      ],
+      "group": "product"
+    },
+    {
+      "id": "product-discovery",
+      "label": "Product discovery",
+      "altLabels": [
+        "design thinking",
+        "Jobs-to-be-done",
+        "JTBD"
+      ],
+      "group": "product"
+    },
+    {
+      "id": "figma",
+      "label": "Figma",
+      "altLabels": [
+        "Figma design",
+        "Figma prototype",
+        "Figma UI"
+      ],
+      "group": "design tools"
+    },
+    {
+      "id": "sketch",
+      "label": "Sketch",
+      "altLabels": [
+        "Sketch app",
+        "Sketch design"
+      ],
+      "group": "design tools"
+    },
+    {
+      "id": "adobe-xd",
+      "label": "Adobe XD",
+      "altLabels": [
+        "XD design",
+        "AdobeXD"
+      ],
+      "group": "design tools"
+    },
+    {
+      "id": "ux-design",
+      "label": "User experience design",
+      "altLabels": [
+        "UX design",
+        "UX strategy",
+        "user-centred design"
+      ],
+      "group": "design"
+    },
+    {
+      "id": "ui-design",
+      "label": "User interface design",
+      "altLabels": [
+        "UI design",
+        "visual design"
+      ],
+      "group": "design"
+    },
+    {
+      "id": "accessibility",
+      "label": "Accessibility",
+      "altLabels": [
+        "a11y",
+        "WCAG",
+        "inclusive design"
+      ],
+      "group": "design"
+    },
+    {
+      "id": "motion-design",
+      "label": "Motion design",
+      "altLabels": [
+        "animation design",
+        "After Effects"
+      ],
+      "group": "design"
+    },
+    {
+      "id": "design-systems",
+      "label": "Design systems",
+      "altLabels": [
+        "component library design",
+        "Storybook design"
+      ],
+      "group": "design"
+    },
+    {
+      "id": "information-architecture",
+      "label": "Information architecture",
+      "altLabels": [
+        "IA",
+        "content strategy",
+        "site mapping"
+      ],
+      "group": "design"
+    },
+    {
+      "id": "prototyping",
+      "label": "Prototyping",
+      "altLabels": [
+        "wireframing",
+        "low-fi prototype",
+        "hi-fi mockup"
+      ],
+      "group": "design"
+    },
+    {
+      "id": "digital-marketing",
+      "label": "Digital marketing",
+      "altLabels": [
+        "performance marketing",
+        "online marketing"
+      ],
+      "group": "marketing"
+    },
+    {
+      "id": "seo",
+      "label": "Search engine optimization",
+      "altLabels": [
+        "SEO",
+        "organic search",
+        "technical SEO"
+      ],
+      "group": "marketing"
+    },
+    {
+      "id": "sem",
+      "label": "Search engine marketing",
+      "altLabels": [
+        "SEM",
+        "Google Ads",
+        "paid search",
+        "PPC"
+      ],
+      "group": "marketing"
+    },
+    {
+      "id": "content-marketing",
+      "label": "Content marketing",
+      "altLabels": [
+        "content strategy",
+        "editorial calendar"
+      ],
+      "group": "marketing"
+    },
+    {
+      "id": "email-marketing",
+      "label": "Email marketing",
+      "altLabels": [
+        "email campaigns",
+        "Mailchimp",
+        "email automation"
+      ],
+      "group": "marketing"
+    },
+    {
+      "id": "social-media-marketing",
+      "label": "Social media marketing",
+      "altLabels": [
+        "SMM",
+        "social media management"
+      ],
+      "group": "marketing"
+    },
+    {
+      "id": "copywriting",
+      "label": "Copywriting",
+      "altLabels": [
+        "UX writing",
+        "content writing",
+        "marketing copy"
+      ],
+      "group": "marketing"
+    },
+    {
+      "id": "crm-marketing",
+      "label": "CRM marketing",
+      "altLabels": [
+        "lifecycle marketing",
+        "customer retention",
+        "Klaviyo"
+      ],
+      "group": "marketing"
+    },
+    {
+      "id": "growth-hacking",
+      "label": "Growth hacking",
+      "altLabels": [
+        "growth marketing",
+        "virality",
+        "referral programs"
+      ],
+      "group": "growth"
+    },
+    {
+      "id": "sales",
+      "label": "Sales",
+      "altLabels": [
+        "business development",
+        "B2B sales",
+        "enterprise sales",
+        "SaaS sales"
+      ],
+      "group": "sales"
+    },
+    {
+      "id": "inside-sales",
+      "label": "Inside sales",
+      "altLabels": [
+        "SDR",
+        "BDR",
+        "sales development"
+      ],
+      "group": "sales"
+    },
+    {
+      "id": "account-management",
+      "label": "Account management",
+      "altLabels": [
+        "client management",
+        "customer success"
+      ],
+      "group": "sales"
+    },
+    {
+      "id": "revenue-operations",
+      "label": "Revenue operations",
+      "altLabels": [
+        "RevOps",
+        "sales operations"
+      ],
+      "group": "sales"
+    },
+    {
+      "id": "financial-modeling",
+      "label": "Financial modeling",
+      "altLabels": [
+        "financial modelling",
+        "Excel modeling",
+        "DCF"
+      ],
+      "group": "finance"
+    },
+    {
+      "id": "accounting",
+      "label": "Accounting",
+      "altLabels": [
+        "bookkeeping",
+        "GAAP",
+        "accounts payable",
+        "accounts receivable"
+      ],
+      "group": "finance"
+    },
+    {
+      "id": "fp-a",
+      "label": "FP&A",
+      "altLabels": [
+        "financial planning and analysis",
+        "budgeting",
+        "forecasting"
+      ],
+      "group": "finance"
+    },
+    {
+      "id": "valuation",
+      "label": "Business valuation",
+      "altLabels": [
+        "startup valuation",
+        "company valuation",
+        "venture analysis"
+      ],
+      "group": "finance"
+    },
+    {
+      "id": "investment-analysis",
+      "label": "Investment analysis",
+      "altLabels": [
+        "equity research",
+        "portfolio management",
+        "due diligence"
+      ],
+      "group": "finance"
+    },
+    {
+      "id": "risk-management",
+      "label": "Risk management",
+      "altLabels": [
+        "risk analysis",
+        "financial risk",
+        "ERM"
+      ],
+      "group": "finance"
+    },
+    {
+      "id": "recruiting",
+      "label": "Recruiting",
+      "altLabels": [
+        "talent acquisition",
+        "hiring",
+        "talent sourcing",
+        "TA"
+      ],
+      "group": "human resources"
+    },
+    {
+      "id": "hr-operations",
+      "label": "HR operations",
+      "altLabels": [
+        "people operations",
+        "HRIS",
+        "HR systems"
+      ],
+      "group": "human resources"
+    },
+    {
+      "id": "learning-development",
+      "label": "Learning & development",
+      "altLabels": [
+        "L&D",
+        "employee training",
+        "upskilling"
+      ],
+      "group": "human resources"
+    },
+    {
+      "id": "compensation-benefits",
+      "label": "Compensation & benefits",
+      "altLabels": [
+        "C&B",
+        "total rewards",
+        "ESOP"
+      ],
+      "group": "human resources"
+    },
+    {
+      "id": "performance-management",
+      "label": "Performance management",
+      "altLabels": [
+        "performance reviews",
+        "OKRs HR"
+      ],
+      "group": "human resources"
+    },
+    {
+      "id": "project-management",
+      "label": "Project management",
+      "altLabels": [
+        "program management",
+        "PMO",
+        "PMP",
+        "PRINCE2"
+      ],
+      "group": "management"
+    },
+    {
+      "id": "agile",
+      "label": "Agile methodologies",
+      "altLabels": [
+        "Scrum",
+        "Kanban",
+        "SAFe",
+        "Lean",
+        "sprint planning"
+      ],
+      "group": "management"
+    },
+    {
+      "id": "stakeholder-management",
+      "label": "Stakeholder management",
+      "altLabels": [
+        "executive stakeholders",
+        "cross-functional"
+      ],
+      "group": "leadership"
+    },
+    {
+      "id": "operations-management",
+      "label": "Operations management",
+      "altLabels": [
+        "business operations",
+        "process improvement"
+      ],
+      "group": "management"
+    },
+    {
+      "id": "six-sigma",
+      "label": "Six Sigma",
+      "altLabels": [
+        "Lean Six Sigma",
+        "process excellence",
+        "Green Belt"
+      ],
+      "group": "management"
+    },
+    {
+      "id": "communication",
+      "label": "Communication",
+      "altLabels": [
+        "written communication",
+        "verbal communication",
+        "presentation skills"
+      ],
+      "group": "transversal skills"
+    },
+    {
+      "id": "leadership",
+      "label": "Leadership",
+      "altLabels": [
+        "team leadership",
+        "people management",
+        "leading teams"
+      ],
+      "group": "leadership"
+    },
+    {
+      "id": "problem-solving",
+      "label": "Problem solving",
+      "altLabels": [
+        "analytical thinking",
+        "root cause analysis"
+      ],
+      "group": "transversal skills"
+    },
+    {
+      "id": "critical-thinking",
+      "label": "Critical thinking",
+      "altLabels": [
+        "strategic thinking",
+        "structured thinking"
+      ],
+      "group": "transversal skills"
+    },
+    {
+      "id": "collaboration",
+      "label": "Collaboration",
+      "altLabels": [
+        "teamwork",
+        "cross-functional collaboration"
+      ],
+      "group": "transversal skills"
+    },
+    {
+      "id": "adaptability",
+      "label": "Adaptability",
+      "altLabels": [
+        "flexibility",
+        "change management",
+        "resilience"
+      ],
+      "group": "transversal skills"
+    },
+    {
+      "id": "time-management",
+      "label": "Time management",
+      "altLabels": [
+        "prioritisation",
+        "deadline management"
+      ],
+      "group": "transversal skills"
+    },
+    {
+      "id": "mentoring",
+      "label": "Mentoring",
+      "altLabels": [
+        "coaching",
+        "knowledge transfer",
+        "technical mentorship"
+      ],
+      "group": "leadership"
+    },
+    {
+      "id": "tally",
+      "label": "Tally",
+      "altLabels": [
+        "Tally ERP",
+        "Tally Prime"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "zoho",
+      "label": "Zoho",
+      "altLabels": [
+        "Zoho CRM",
+        "Zoho One",
+        "Zoho Books"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "freshworks",
+      "label": "Freshworks",
+      "altLabels": [
+        "Freshdesk",
+        "Freshsales",
+        "Freshservice"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "razorpay",
+      "label": "Razorpay",
+      "altLabels": [
+        "payment gateway",
+        "Razorpay integration"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "upi",
+      "label": "UPI integration",
+      "altLabels": [
+        "UPI payments",
+        "NPCI APIs"
+      ],
+      "group": "enterprise software"
+    },
+    {
+      "id": "gst",
+      "label": "GST",
+      "altLabels": [
+        "GST filing",
+        "GST compliance",
+        "tax computation India"
+      ],
+      "group": "finance"
+    },
+    {
+      "id": "rbi-compliance",
+      "label": "RBI compliance",
+      "altLabels": [
+        "SEBI",
+        "financial compliance India"
+      ],
+      "group": "finance"
+    }
+  ]
+}

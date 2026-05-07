@@ -1,11 +1,14 @@
 import { NormalizedJob } from './types';
+import { normalizeCompanyName } from '@/lib/jobs/company-normalize';
 
 export function generateJobSignature(job: NormalizedJob): string {
   const normalizeText = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, '');
 
   const titleStr = normalizeText(job.title);
-  const companyStr = normalizeText(job.company);
-  const locationStr = normalizeText(job.location || '');
+  // Use company normalizer: strips legal suffixes so "Accenture Pvt. Ltd." and "Accenture" collide
+  const companyStr = normalizeCompanyName(job.company) || normalizeText(job.company);
+  // Coarsen location to city-level (first word) to avoid "Bangalore" vs "Bengaluru" mismatches
+  const locationStr = normalizeText((job.location || '').split(/[,/]/)[0]);
 
   // Signature based on core properties
   return `${titleStr}|${companyStr}|${locationStr}`;

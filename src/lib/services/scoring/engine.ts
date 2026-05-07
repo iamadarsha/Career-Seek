@@ -6,6 +6,7 @@ import { inferRoleFamilies } from '../scraping/role-family-packs';
 import { expandSkillTerms } from '../skills/taxonomy';
 import { SCORING_THRESHOLDS } from '../../constants/scoring';
 import { indexJobs, type SearchableJob } from '../../search';
+import { computeResumeJobSimilarityBonus } from './tfidf';
 
 export interface ScoreBreakdown {
   titleScore: number;
@@ -15,6 +16,7 @@ export interface ScoreBreakdown {
   workModeScore: number;
   keywordScore: number;
   qualityScore: number;
+  semanticBonus: number;
   totalScore: number;
   positiveFactors: string[];
   negativeFactors: string[];
@@ -403,6 +405,25 @@ export function scoreJob(job: any, master: any, search: any): ScoreBreakdown {
   }
   totalScore += keywordScore;
 
+  // 5b. TF-IDF Semantic similarity bonus (max +12 pts)
+  // Compares resume text against job description using cosine similarity.
+  // Only fires if both sides have enough text to be meaningful.
+  let semanticBonus = 0;
+  const resumeText = [
+    String(master.rawSummary || ''),
+    String(master.skillsExplicit || ''),
+    String(master.skillsInferred || ''),
+    String(master.experience || ''),
+    String(master.achievements || ''),
+  ].filter(Boolean).join(' ');
+  const jobDescText = `${jobTitle} ${jobSnippet}`;
+  if (resumeText.length > 100 && jobDescText.length > 30) {
+    const rawBonus = computeResumeJobSimilarityBonus(resumeText, jobDescText);
+    semanticBonus = Math.min(rawBonus, 12); // cap contribution to avoid dominating other signals
+    if (semanticBonus >= 5) positiveFactors.push(`Strong semantic alignment between resume and JD (${semanticBonus}pt bonus)`);
+    totalScore += semanticBonus;
+  }
+
   // 6. Listing Quality / Seniority / Domain Sanity (can be negative)
   let qualityScore = 0;
   const isGenericListing = isGenericNonJobListing(job);
@@ -523,6 +544,7 @@ export function scoreJob(job: any, master: any, search: any): ScoreBreakdown {
     workModeScore,
     keywordScore,
     qualityScore,
+    semanticBonus,
     totalScore,
     positiveFactors,
     negativeFactors,
