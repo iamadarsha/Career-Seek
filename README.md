@@ -18,7 +18,7 @@ Everything runs on your own machine — no subscription, no cloud account, no da
 
 [![Install on macOS](https://img.shields.io/badge/Install-macOS-000?style=for-the-badge&logo=apple&logoColor=fff)](#install-in-one-command)
 [![Install on Windows](https://img.shields.io/badge/Install-Windows-0078d4?style=for-the-badge&logo=windows&logoColor=fff)](#install-in-one-command)
-[![Next.js 15](https://img.shields.io/badge/Next.js-15_App_Router-000?style=flat-square&logo=next.js)](#tech-stack)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14_App_Router-000?style=flat-square&logo=next.js)](#tech-stack)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178c6?style=flat-square&logo=typescript&logoColor=fff)](#tech-stack)
 [![SQLite](https://img.shields.io/badge/SQLite-Local_First-044a64?style=flat-square&logo=sqlite&logoColor=fff)](#tech-stack)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](#)
@@ -406,36 +406,55 @@ cd ~/Career-Seek
 git pull origin main
 npm install
 npm run db:push:direct     # safe — runs ALTER TABLE only for new columns
-npm run skills:build       # rebuild enriched skills taxonomy
 npm run launch
 
-# Windows
+# Windows (PowerShell)
 cd ~/Career-Seek
 git pull origin main
 npm install
 npm run db:push:direct
-npm run skills:build
 npm run launch
 ```
 
-Or just re-run the one-command installer — it detects an existing checkout and does a safe `git pull`.
+Or just re-run the one-command installer — it detects an existing checkout and does a safe `git pull` and re-bootstraps automatically.
 
 ---
 
 ## Changelog
 
-### May 2026 — Latest
+### v1.2.0 — May 2026 (Latest)
 
-- **3-format outreach pack** — one click generates short pitch, LinkedIn connection note, and cold email, all grounded in your actual resume. Copy-button per format.
-- **Feedback signals** — 👍 / 👎 / 🗑️ on every job card. Stored locally, surfaces future recommendations.
-- **Snooze** — hide jobs for 2 / 5 / 10 days with one click. Automatically reappears on the set date.
-- **Red-flag scoring** — unpaid / for-exposure listings capped at score 18; equity-only / commission-only listings capped at 40.
-- **TF-IDF semantic similarity** — resume text vs. JD cosine similarity adds up to 12 pts to the fit score. Pure TypeScript, no external service.
-- **Company name normalizer** — deduplication now strips legal suffixes (Pvt Ltd, Inc, Corp…) before comparing company names, fixing cross-source duplicates.
-- **Proper ts-jobspy adapter** — `jobspy_api` portal now uses `scrapeJobs()` directly (HTTP, no Playwright) for LinkedIn + Indeed concurrent search.
-- **Resume section extractor** — structured parsing of raw resume text into typed sections: skills, experience bullets, education, achievements, contact info.
-- **ESCO skills taxonomy enriched** — 80 → 218 skills across 32 groups covering full cloud, ML/AI ecosystem, enterprise (SAP/Salesforce/Zoho), Indian market (Tally, UPI, GST), and design systems.
-- **Auto-start Redis** — `npm run dev` and `npm run start` auto-start the bundled Redis binary before the server; never see "Redis is not reachable" again.
+#### Search Broadening
+- **Salary range expansion** — "15 LPA expected" now searches 12–18 LPA (±20%). Your target becomes the midpoint, not the floor. Portals that support salary filters (Naukri) get `sminlakh`/`smaxlakh` params passed automatically.
+- **City alias expansion** — "Bangalore" automatically also searches "Bengaluru". "Delhi" → "New Delhi", "Delhi NCR", "NCR". 18 Indian metro groups with all common spellings.
+- **Remote opt-in** — when work model is remote/hybrid, "Remote" is added to every location query so you never miss remote-first listings.
+- **Experience buffer** — band widened by 1 year each side from the start (3–5 yrs → 2–6 yrs). No more missing roles because you're 6 months short of the stated minimum.
+- **Role synonym table 3× larger** — SDE/SWE tiers (SDE-1/2/3), mobile (Android/iOS/Flutter), Python/Node/React variants, Data Engineer, Business Analyst, Sales, HR, Customer Success, Marketing, Chief of Staff — all expanded automatically.
+- **5-level search expansion** — if a portal returns too few results, the orchestrator progressively widens: add Remote → widen experience → widen salary range → drop avoid keywords → drop salary limits.
+- **Wider scraping window** — python-jobspy `results_wanted` raised 25→30; recency window 14→21 days.
+
+#### Reliability
+- **Worker auto-restart** — BullMQ worker restarts automatically on crash (exponential backoff 1s→2s→4s→…→30s, max 5 restarts/60 s). App stays up; scanning recovers without restarting Career Seek.
+- **Port conflict detection** — launch auto-finds the next free port if 3000 is taken. No more "address already in use" crash.
+- **Atomic `.env.local` writes** — write to `.tmp` then rename; a kill mid-write can never corrupt your env file.
+- **Cross-platform `.env.local` auto-creation** — both bootstrap and launch create `.env.local` with required defaults on first run; no manual step needed.
+- **Node.js heap limit** — `--max-old-space-size=4096` set automatically during `next build` so 8 GB machines never OOM.
+- **28-category preflight checker** — `npm run preflight` validates the full stack (Redis, Meilisearch, Python, Playwright, DB, env vars, disk space, port availability).
+
+### v1.1.0 — May 2026
+
+- **3-format outreach pack** — short pitch, LinkedIn note, cold email in one click, grounded in your actual resume.
+- **Feedback signals** — 👍 / 👎 / 🗑️ per job card, stored locally.
+- **Snooze** — hide jobs for 2 / 5 / 10 days.
+- **Red-flag scoring** — unpaid listings capped at 18; equity-only capped at 40.
+- **TF-IDF semantic similarity** — cosine resume↔JD scoring (up to 12 pts). Pure TypeScript, no API.
+- **JobSpy2 multi-site** — Glassdoor + ZipRecruiter added via speedyapply fork.
+- **sklearn ATS scorer** — Python cosine-similarity pre-check before LLM call.
+- **Company name normalizer** — strips `Pvt Ltd`, `Inc`, `Corp`, `LLP` before deduplication.
+- **ts-jobspy adapter** — `jobspy_api` uses `scrapeJobs()` HTTP-direct (no Playwright) for LinkedIn + Indeed.
+- **Resume section extractor** — structured typed-section parsing (skills, bullets, education, achievements).
+- **ESCO skills taxonomy** — 80 → 218 skills across 32 groups, Indian market enriched.
+- **Auto-start Redis** — `npm run dev` and `npm run start` auto-start the bundled Redis.
 
 ---
 

@@ -1,8 +1,28 @@
 {
-  "name": "jobhunt-india",
-  "version": "1.0.0",
-  "description": "Local-first AI-powered job search app",
-  "main": "index.js",
+  "name": "career-seek",
+  "version": "1.2.0",
+  "description": "Local-first AI-powered job search OS — scan boards, score fit, generate documents, track applications, get coaching. Everything runs on your machine.",
+  "homepage": "https://github.com/iamadarsha/Career-Seek#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iamadarsha/Career-Seek.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iamadarsha/Career-Seek/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "job-search",
+    "ai",
+    "career",
+    "resume",
+    "naukri",
+    "linkedin",
+    "india",
+    "local-first",
+    "nextjs",
+    "bullmq"
+  ],
   "engines": {
     "node": ">=20 <26"
   },
