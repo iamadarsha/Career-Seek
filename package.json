@@ -42,7 +42,8 @@
     "qa:scrapers": "npx tsx scripts/qa/scrapers-smoke.ts",
     "qa:ats": "npx tsx scripts/qa/phase3-ats-smoke.ts",
     "qa:phase4": "npx tsx scripts/qa/phase4-local-smoke.ts",
-    "proof:final": "npx tsx scripts/final-proof-run.ts"
+    "proof:final": "npx tsx scripts/final-proof-run.ts",
+    "preflight": "node scripts/preflight.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.72",
