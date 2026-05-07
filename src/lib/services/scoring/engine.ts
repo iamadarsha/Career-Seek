@@ -130,6 +130,10 @@ const NON_JOB_CONTENT_PATTERNS = [
   /join our talent community|manage preferences|skip to main content/i,
 ];
 
+// ── Quality Gate: red-flag terms that disqualify or heavily penalise a listing ──
+const RED_FLAG_HARD_REJECT = /\b(unpaid\s+(?:internship|position|role|work)|for\s+exposure|spec\s+work|lowest\s+bidder)\b/i;
+const RED_FLAG_SOFT_PENALTY = /\b(equity\s+only|commission\s+only|commission-only|no\s+base\s+(?:pay|salary)|sweat\s+equity|revenue\s+share\s+only|stock\s+only|no\s+budget|test\s+project\s+required|complete\s+a\s+(?:paid\s+)?test|pay\s+to\s+work|pay\s+for\s+training)\b/i;
+
 const ENTRY_LEVEL_PATTERN = /\b(intern|internship|trainee|graduate|campus|fresher|entry level|apprentice)\b/i;
 const SENIOR_ROLE_PATTERN = /\b(head|director|principal|staff|lead|manager|architect)\b/i;
 const PRIMARY_SCHOOL_PATTERN = /\b(primary|pre primary|nursery|kindergarten|kg)\b/i;
@@ -406,6 +410,16 @@ export function scoreJob(job: any, master: any, search: any): ScoreBreakdown {
   const searchWantsPhysics = /\bphysics\b/.test(searchText);
   const searchWantsScience = /\bscience\b/.test(searchText);
 
+  // Red flag gate (before any other quality adjustments)
+  const jobFullText = `${jobTitle} ${jobSnippet} ${String(job.company || '')}`;
+  if (RED_FLAG_HARD_REJECT.test(jobFullText)) {
+    qualityScore -= 45;
+    negativeFactors.push('Red flag: unpaid / for-exposure listing');
+  } else if (RED_FLAG_SOFT_PENALTY.test(jobFullText)) {
+    qualityScore -= 22;
+    negativeFactors.push('Red flag: equity-only / commission-only / no-budget compensation');
+  }
+
   if (isGenericListing) {
     qualityScore -= 25;
     negativeFactors.push('Listing looks like a careers/info page or taxonomy page, not a specific role');
@@ -487,6 +501,15 @@ export function scoreJob(job: any, master: any, search: any): ScoreBreakdown {
   ) {
     totalScore = Math.min(totalScore, 44);
     warnings.push('Capped because this looks like Strategy/Ops rather than Product Management');
+  }
+
+  // Hard cap for red-flag listings
+  if (RED_FLAG_HARD_REJECT.test(jobFullText)) {
+    totalScore = Math.min(totalScore, 18);
+    warnings.push('Score capped: unpaid / for-exposure listing');
+  } else if (RED_FLAG_SOFT_PENALTY.test(jobFullText)) {
+    totalScore = Math.min(totalScore, 40);
+    warnings.push('Score capped: non-standard compensation terms detected');
   }
 
   // Bound score 0-100

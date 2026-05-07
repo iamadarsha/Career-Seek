@@ -671,3 +671,64 @@ export async function generateBriefForJob(scoredJobId: number) {
   }
   return { success: false, error: 'Failed to generate brief' };
 }
+
+// ── Feedback & Snooze actions ──────────────────────────────────────────────
+
+export type FeedbackLabel = 'relevant' | 'not_relevant' | 'trash' | 'duplicate';
+
+/** Save or clear user feedback on a scored job. */
+export async function saveJobFeedback(
+  scoredJobId: number,
+  label: FeedbackLabel | null,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = getDb();
+    const { profileId } = resolveContext();
+    const exists = db.select({ id: scoredJobs.id })
+      .from(scoredJobs)
+      .where(and(eq(scoredJobs.id, scoredJobId), eq(scoredJobs.profileId, profileId)))
+      .get();
+    if (!exists) return { success: false, error: 'Job not found' };
+
+    db.update(scoredJobs)
+      .set({
+        feedbackLabel: label,
+        feedbackAt: label ? new Date() : null,
+      })
+      .where(eq(scoredJobs.id, scoredJobId))
+      .run();
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/** Snooze a job card for N days (or clear snooze with days=0). */
+export async function snoozeJob(
+  scoredJobId: number,
+  days: 0 | 2 | 5 | 10,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = getDb();
+    const { profileId } = resolveContext();
+    const exists = db.select({ id: scoredJobs.id })
+      .from(scoredJobs)
+      .where(and(eq(scoredJobs.id, scoredJobId), eq(scoredJobs.profileId, profileId)))
+      .get();
+    if (!exists) return { success: false, error: 'Job not found' };
+
+    const snoozeUntil = days > 0
+      ? new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+      : null;
+
+    db.update(scoredJobs)
+      .set({ snoozeUntil })
+      .where(eq(scoredJobs.id, scoredJobId))
+      .run();
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}

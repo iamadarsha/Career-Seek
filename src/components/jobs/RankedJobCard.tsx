@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Bookmark,
   CheckCircle2,
+  Clock,
   Copy,
   Download,
   ExternalLink,
@@ -12,16 +13,21 @@ import {
   Mail,
   MessageCircle,
   Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
 } from 'lucide-react';
-import { generateBriefForJob } from '@/app/discover/actions';
+import { generateBriefForJob, saveJobFeedback, snoozeJob, type FeedbackLabel } from '@/app/discover/actions';
 import {
   generateCoverLetterAction,
   generateOutreachNoteAction,
+  generateOutreachPackAction,
   generateResumePipeline,
   getDocumentAssets,
   toggleAppliedStatus,
   toggleSavedStatus,
 } from '@/app/discover/document-actions';
+import type { OutreachPack } from '@/lib/services/documents/outreach';
 import { AdvisoryEstimateLabel } from '@/components/ui/AdvisoryEstimateLabel';
 import { getJobActionState } from '@/lib/jobs/action-state';
 
@@ -146,6 +152,10 @@ export function RankedJobCard({ item, compact = false, capabilities }: { item: a
   const [error, setError] = useState<string | null>(null);
   const [assets, setAssets] = useState<any[]>([]);
   const [dismissed, setDismissed] = useState(false);
+  const [feedbackLabel, setFeedbackLabel] = useState<FeedbackLabel | null>((scoredJob.feedbackLabel as FeedbackLabel) || null);
+  const [outreachPack, setOutreachPack] = useState<OutreachPack | null>(null);
+  const [outreachTab, setOutreachTab] = useState<'shortPitch' | 'linkedinNote' | 'coldEmail'>('shortPitch');
+  const [showOutreachPanel, setShowOutreachPanel] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -190,6 +200,7 @@ export function RankedJobCard({ item, compact = false, capabilities }: { item: a
   const resumeLabel = latestResume ? `Refresh tailored resume v${latestResume.version || 1}` : latestResumePdf ? 'Refresh ATS resume PDF' : 'Tailor resume';
   const coverLabel = latestCover ? `Regenerate cover v${latestCover.version || 1}` : 'Create cover letter';
   const outreachLabel = latestOutreach ? `Regenerate outreach v${latestOutreach.version || 1}` : 'Create outreach';
+  const outreachPackLabel = showOutreachPanel ? 'Hide outreach pack' : outreachPack ? 'Refresh outreach pack' : 'Get outreach pack';
   const appliedLabel = isApplied ? 'Applied' : 'Mark applied';
   const aiLimited = capabilities?.has_ai_provider === false || capabilities?.safe_modes?.ai_generation_limited === true;
   const actionState = getJobActionState({
@@ -403,6 +414,46 @@ export function RankedJobCard({ item, compact = false, capabilities }: { item: a
     }
   };
 
+  const handleFeedback = async (label: FeedbackLabel) => {
+    const newLabel = feedbackLabel === label ? null : label;
+    setFeedbackLabel(newLabel);
+    try {
+      await saveJobFeedback(scoredJob.id, newLabel);
+    } catch {
+      setFeedbackLabel(feedbackLabel); // revert on error
+    }
+  };
+
+  const handleSnooze = async (days: 0 | 2 | 5 | 10) => {
+    try {
+      const res = await snoozeJob(scoredJob.id, days);
+      if (res.success) setDismissed(true);
+    } catch {
+      // silent — snooze is best-effort
+    }
+  };
+
+  const generateOutreachPackHandler = async () => {
+    setError(null);
+    if (showOutreachPanel && outreachPack && !loadingAction) {
+      setShowOutreachPanel(false);
+      return;
+    }
+    setLoadingAction('outreach-pack');
+    try {
+      const res = await generateOutreachPackAction(scoredJob.id);
+      if (!res.success || !res.data) throw new Error(res.error || 'Outreach pack generation failed');
+      setOutreachPack(res.data);
+      setOutreachTab('shortPitch');
+      setShowOutreachPanel(true);
+      setInlinePanel(null); // collapse brief panel if open
+    } catch (event: any) {
+      setError(event.message || 'Outreach pack generation failed');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   if (dismissed) return null;
 
   return (
@@ -540,14 +591,74 @@ export function RankedJobCard({ item, compact = false, capabilities }: { item: a
               <button type="button" onClick={generateCover} disabled={Boolean(loadingAction)} className={actionButtonClass('outline')}>
                 {loadingAction === 'cover' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} {coverLabel}
               </button>
-              <button type="button" onClick={generateOutreach} disabled={Boolean(loadingAction)} aria-expanded={inlinePanel?.type === 'connect'} className={actionButtonClass('connect')}>
+              <button type="button" onClick={generateOutreach} disabled={Boolean(loadingAction)} aria-expanded={inlinePanel?.type === 'connect'} className={actionButtonClass('outline')}>
                 {loadingAction === 'connect' ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />} {outreachLabel}
               </button>
+              <button type="button" onClick={generateOutreachPackHandler} disabled={Boolean(loadingAction)} className={actionButtonClass('connect')}>
+                {loadingAction === 'outreach-pack' ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />} {outreachPackLabel}
+              </button>
+              <div className="mt-1 border-t border-card-border pt-2">
+                <p className="mb-1 px-1 text-xs font-semibold text-muted-foreground">Follow up in</p>
+                <div className="flex gap-1">
+                  {([2, 5, 10] as const).map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => handleSnooze(days)}
+                      className="flex-1 inline-flex items-center justify-center gap-1 rounded-full border border-card-border px-2 py-1.5 text-xs font-semibold text-muted-foreground transition hover:border-primary/40 hover:text-primary"
+                    >
+                      <Clock className="h-3 w-3" /> {days}d
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </details>
           )}
         </div>
       </div>
+
+      {!isGooglePreview && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-semibold text-muted-foreground">Signal:</span>
+          <button
+            type="button"
+            onClick={() => handleFeedback('relevant')}
+            title="Mark as good fit"
+            className={`inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition ${
+              feedbackLabel === 'relevant'
+                ? 'border-success-border bg-success-bg text-success'
+                : 'border-card-border bg-surface text-muted-foreground hover:border-success-border hover:text-success'
+            }`}
+          >
+            <ThumbsUp className="h-3 w-3" /> Good fit
+          </button>
+          <button
+            type="button"
+            onClick={() => handleFeedback('not_relevant')}
+            title="Mark as not relevant"
+            className={`inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition ${
+              feedbackLabel === 'not_relevant'
+                ? 'border-warning-border bg-warning-bg text-warning'
+                : 'border-card-border bg-surface text-muted-foreground hover:border-warning-border hover:text-warning'
+            }`}
+          >
+            <ThumbsDown className="h-3 w-3" /> Not relevant
+          </button>
+          <button
+            type="button"
+            onClick={() => handleFeedback('trash')}
+            title="Mark as trash / spam"
+            className={`inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition ${
+              feedbackLabel === 'trash'
+                ? 'border-danger-border bg-danger-bg text-danger'
+                : 'border-card-border bg-surface text-muted-foreground hover:border-danger-border hover:text-danger'
+            }`}
+          >
+            <Trash2 className="h-3 w-3" /> Trash
+          </button>
+        </div>
+      )}
 
       {inlinePanel && (
         <div className="mt-4 rounded-apple border border-card-border bg-surface-container-low p-4">
@@ -558,6 +669,60 @@ export function RankedJobCard({ item, compact = false, capabilities }: { item: a
             </button>
           </div>
           {inlinePanel.body}
+        </div>
+      )}
+
+      {showOutreachPanel && outreachPack && (
+        <div className="mt-4 rounded-apple border border-card-border bg-surface-container-low p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="font-semibold">Outreach pack</p>
+            <button type="button" onClick={() => setShowOutreachPanel(false)} className="design-button-secondary min-h-9 px-3 text-xs font-bold text-muted-foreground">
+              Collapse
+            </button>
+          </div>
+          <div className="mb-3 flex gap-1 rounded-full border border-card-border bg-surface p-1">
+            {([
+              { key: 'shortPitch', label: 'Short pitch' },
+              { key: 'linkedinNote', label: 'LinkedIn note' },
+              { key: 'coldEmail', label: 'Cold email' },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setOutreachTab(key)}
+                className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                  outreachTab === key ? 'bg-primary text-white shadow-golden-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <pre className="whitespace-pre-wrap rounded-apple bg-warning-bg p-4 text-sm leading-6 text-foreground">
+            {outreachTab === 'shortPitch' && outreachPack.shortPitch}
+            {outreachTab === 'linkedinNote' && outreachPack.linkedinNote}
+            {outreachTab === 'coldEmail' && outreachPack.coldEmail}
+          </pre>
+          {outreachTab === 'coldEmail' && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              <span className="font-semibold">Subject:</span> {outreachPack.emailSubject}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() =>
+              navigator.clipboard.writeText(
+                outreachTab === 'shortPitch'
+                  ? outreachPack.shortPitch
+                  : outreachTab === 'linkedinNote'
+                    ? outreachPack.linkedinNote
+                    : `Subject: ${outreachPack.emailSubject}\n\n${outreachPack.coldEmail}`,
+              )
+            }
+            className={`mt-3 ${actionButtonClass('connect')}`}
+          >
+            <Copy className="h-4 w-4" /> Copy
+          </button>
         </div>
       )}
 

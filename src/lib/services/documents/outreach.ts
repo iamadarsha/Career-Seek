@@ -9,6 +9,15 @@ export const OutreachNoteSchema = z.object({
   content: z.string(),
 });
 
+export const OutreachPackSchema = z.object({
+  shortPitch: z.string(),    // 3-line pitch: hook + proof + CTA (~50 words)
+  linkedinNote: z.string(),  // LinkedIn connection note (<75 words)
+  coldEmail: z.string(),     // Full cold email with subject line (~130 words)
+  emailSubject: z.string(),  // Subject line for the cold email
+});
+
+export type OutreachPack = z.infer<typeof OutreachPackSchema>;
+
 function safeArray(value: unknown) {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -201,5 +210,100 @@ export async function generateOutreachNote(
   } catch (error) {
     console.error(`Failed to generate outreach note with the selected AI provider; using deterministic fallback: ${safeDocumentAiErrorMessage(error)}`);
     return fallbackOutreachNote(profile, jdAnalysis, jobContext);
+  }
+}
+
+// ── 3-format outreach pack ──────────────────────────────────────────────────
+
+function fallbackOutreachPack(
+  profile: typeof masterProfiles.$inferSelect,
+  jdAnalysis: JdAnalysis,
+  jobContext: any,
+): OutreachPack {
+  const name = profile.fullName || 'I';
+  const skills = supportedTerms(profile, jdAnalysis).slice(0, 2).join(' and ') || profile.headline || 'my background';
+  const achievement = relevantAchievement(profile, supportedTerms(profile, jdAnalysis).slice(0, 4), jobContext);
+  const proof = achievement || skills;
+  const shortProof = proof.length > 100 ? `${proof.slice(0, 97).trim()}...` : proof;
+
+  return {
+    shortPitch: `${name} — ${profile.headline || skills}.\n${shortProof}\nWould love to discuss the ${jobContext.title} role at ${jobContext.company}.`,
+    linkedinNote: `Hi, I'm ${name}. My background in ${skills} maps closely to the ${jobContext.title} role at ${jobContext.company}. Would you be open to a quick chat about the opportunity?`,
+    coldEmail: `Hi,\n\nI came across the ${jobContext.title} opening at ${jobContext.company} and wanted to reach out directly.\n\n${shortProof}\n\nI'm particularly drawn to ${jobContext.company} because of ${jdAnalysis.businessContext || 'the role requirements'}. I'd welcome the chance to learn more about the team's priorities.\n\nWould you have 15 minutes for a brief call?\n\nBest,\n${name}`,
+    emailSubject: `${jobContext.title} opportunity — ${name}`,
+  };
+}
+
+/**
+ * Generate a 3-format outreach pack (short pitch, LinkedIn note, cold email)
+ * for a specific job in one AI call.
+ */
+export async function generateOutreachPack(
+  masterProfileId: number,
+  jdAnalysis: JdAnalysis,
+  jobContext: any,
+): Promise<OutreachPack> {
+  const db = getDb();
+  const { profileId } = resolveContext();
+
+  const profile = db.select().from(masterProfiles)
+    .where(and(eq(masterProfiles.id, masterProfileId), eq(masterProfiles.profileId, profileId)))
+    .get();
+  if (!profile) throw new Error('Master profile not found or access denied');
+
+  const terms = supportedTerms(profile, jdAnalysis);
+  const achievement = relevantAchievement(profile, terms, jobContext);
+
+  const prompt = `You are an expert job-search strategist. Generate THREE outreach formats for the same candidate and job — all factually grounded.
+
+CANDIDATE:
+Name: ${profile.fullName}
+Headline: ${profile.headline}
+Profile-supported skills (only reference these): ${terms.join(', ') || 'see summary'}
+Key achievement: ${achievement || 'not specified'}
+Summary: ${String(profile.rawSummary || '').slice(0, 400)}
+
+JOB:
+Title: ${jobContext.title}
+Company: ${jobContext.company}
+Hiring priorities: ${jdAnalysis.hiringPriorities}
+
+RULES (non-negotiable):
+- Never invent metrics, companies, tools, or achievements not listed above
+- shortPitch: exactly 3 sentences. Hook (who you are) + proof (one achievement/skill) + CTA. ≤55 words total.
+- linkedinNote: LinkedIn connection note. Warm, specific, ≤70 words. No "I am writing to...".
+- coldEmail: Full email body (no greeting line). 3 short paragraphs: intro+hook, proof+fit, CTA. 110-150 words.
+- emailSubject: Email subject line. ≤60 chars. Specific to the role.
+
+Return STRICT JSON only — no markdown fences:
+{
+  "shortPitch": "string",
+  "linkedinNote": "string",
+  "coldEmail": "string",
+  "emailSubject": "string"
+}`;
+
+  try {
+    const { data } = await generateDocumentJson(prompt, 'outreach', {
+      temperature: 0.65,
+      schema: OutreachPackSchema,
+    });
+    const pack = OutreachPackSchema.parse(data);
+
+    // Basic grounding: check that the company/title appear in the output
+    const combinedOutput = `${pack.shortPitch} ${pack.linkedinNote} ${pack.coldEmail}`.toLowerCase();
+    const companySignal = normalizeText(jobContext.company);
+    const sourceText = profileSourceText(profile);
+    const metric = unsupportedMetric(combinedOutput, sourceText);
+
+    if (metric || !companySignal || (!combinedOutput.includes(companySignal) && !combinedOutput.includes(normalizeText(jobContext.title)))) {
+      console.warn('[outreach-pack] Grounding check failed — using deterministic fallback');
+      return fallbackOutreachPack(profile, jdAnalysis, jobContext);
+    }
+
+    return pack;
+  } catch (error) {
+    console.error(`[outreach-pack] AI generation failed — using deterministic fallback: ${safeDocumentAiErrorMessage(error)}`);
+    return fallbackOutreachPack(profile, jdAnalysis, jobContext);
   }
 }

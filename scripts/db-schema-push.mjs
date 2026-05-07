@@ -768,6 +768,10 @@ const migrations = [
   "ALTER TABLE automation_rules ADD COLUMN profile_id INTEGER REFERENCES user_profiles(id)",
   "ALTER TABLE platform_jobs ADD COLUMN progress INTEGER DEFAULT 0",
   "ALTER TABLE platform_jobs ADD COLUMN updated_at INTEGER",
+  // Feedback learning + snooze (v2 additions)
+  "ALTER TABLE scored_jobs ADD COLUMN feedback_label TEXT",
+  "ALTER TABLE scored_jobs ADD COLUMN feedback_at INTEGER",
+  "ALTER TABLE scored_jobs ADD COLUMN snooze_until INTEGER",
 ];
 
 for (const m of migrations) {

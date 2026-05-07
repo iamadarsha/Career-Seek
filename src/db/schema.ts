@@ -202,6 +202,11 @@ export const scoredJobs = sqliteTable('scored_jobs', {
   tier: text('tier').notNull(), // 'A', 'B', 'C', 'D'
   breakdown: text('breakdown'), // JSON object explaining positive/negative factors
   scoredAt: integer('scored_at', { mode: 'timestamp' }).notNull(),
+  // Feedback learning
+  feedbackLabel: text('feedback_label'), // null | 'relevant' | 'not_relevant' | 'trash' | 'duplicate'
+  feedbackAt: integer('feedback_at', { mode: 'timestamp' }),
+  // Quick follow-up snooze (hide card until this date)
+  snoozeUntil: integer('snooze_until', { mode: 'timestamp' }),
 });
 
 export const jobEnrichments = sqliteTable('job_enrichments', {

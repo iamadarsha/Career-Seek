@@ -16,7 +16,7 @@ import { tailorResume, type TailoredResume } from '../../lib/services/documents/
 import { buildResumeDocx, buildResumePdf, buildTextPdf } from '../../lib/services/documents/docx-builder';
 import { verifyAtsFit, type AtsReport } from '../../lib/services/documents/ats';
 import { generateCoverLetter } from '../../lib/services/documents/cover-letter';
-import { generateOutreachNote } from '../../lib/services/documents/outreach';
+import { generateOutreachNote, generateOutreachPack, type OutreachPack } from '../../lib/services/documents/outreach';
 import { buildKeywordCoverageReport, buildSectionRecommendations } from '../../lib/services/documents/keyword-coverage';
 import { writeAtsSidecarArtifacts } from '../../lib/ats/builder';
 import { createFromScoredJob, changeStatus } from '../../lib/services/crm/application-service';
@@ -537,4 +537,31 @@ export async function getDocumentAssets(scoredJobId: number) {
     appliedAt: app?.appliedAt,
     jdAnalysis
   };
+}
+
+/** Generate a 3-format outreach pack (pitch + LinkedIn note + cold email) in one AI call. */
+export async function generateOutreachPackAction(
+  scoredJobId: number,
+): Promise<{ success: boolean; data?: OutreachPack; error?: string }> {
+  try {
+    const db = getDb();
+    const { profileId } = resolveContext();
+
+    const jobInfo = db.select()
+      .from(scoredJobs)
+      .innerJoin(normalizedJobs, eq(scoredJobs.normalizedJobId, normalizedJobs.id))
+      .where(and(eq(scoredJobs.id, scoredJobId), eq(scoredJobs.profileId, profileId)))
+      .get();
+    if (!jobInfo) return { success: false, error: 'Job not found' };
+
+    const jdAnalysis = await analyzeJd(scoredJobId);
+    if (!jdAnalysis) return { success: false, error: 'Could not analyse job description' };
+
+    const masterProfileId = getLatestMasterProfileId(profileId);
+    const pack = await generateOutreachPack(masterProfileId, jdAnalysis, jobInfo.normalized_jobs);
+
+    return { success: true, data: pack };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
 }
