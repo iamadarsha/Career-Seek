@@ -4,11 +4,17 @@ Camoufox-based job scraper for bot-protected portals.
 Usage: python camoufox_runner.py '<json_config>'
 
 Config keys:
-  portal        (str)  — portal id (linkedin, naukri, instahyre, etc.)
-  search_term   (str)  — job title / keywords
-  location      (str)  — location string
-  is_remote     (bool) — include remote jobs
-  results_wanted (int) — max jobs to return
+  portal          (str)  — portal id: linkedin, naukri, instahyre, wellfound,
+                           foundit, indeed, greenhouse, lever, company_ats, official
+  search_term     (str)  — job title / keywords
+  location        (str)  — location string
+  is_remote       (bool) — include remote jobs
+  results_wanted  (int)  — max jobs to return
+  linkedin_email  (str)  — optional LinkedIn login email
+  linkedin_password (str) — optional LinkedIn login password
+  naukri_email    (str)  — optional Naukri login email
+  naukri_password (str)  — optional Naukri login password
+  company_url     (str)  — Greenhouse/Lever board URL (for greenhouse/lever portal)
 """
 
 import json
@@ -25,16 +31,18 @@ except ImportError:
 
 PORTAL_URLS = {
     "linkedin": "https://www.linkedin.com/jobs/search/?keywords={query}&location={location}&f_TP=1,2",
-    "naukri": "https://www.naukri.com/{query}-jobs-in-{location_slug}?experience=0",
+    "naukri": "https://www.naukri.com/{query_slug}-jobs-in-{location_slug}?experience=0",
     "instahyre": "https://www.instahyre.com/search-jobs/?search={query}&location={location}",
     "wellfound": "https://wellfound.com/jobs?q={query}&l={location}",
     "foundit": "https://www.foundit.in/srp/results?query={query}&location={location}",
     "indeed": "https://in.indeed.com/jobs?q={query}&l={location}",
     "company_ats": None,
     "official": None,
+    "greenhouse": None,  # URL passed via config["company_url"]
+    "lever": None,       # URL passed via config["company_url"]
 }
 
-# Portal-specific CSS selectors [cards, title, company, location, link]
+# Portal-specific CSS selectors
 PORTAL_SELECTORS = {
     "linkedin": {
         "cards": ".jobs-search__results-list > li, .base-card",
@@ -78,6 +86,22 @@ PORTAL_SELECTORS = {
         "location": "[class*='companyLocation'], [data-testid='job-location']",
         "link": "h2.jobTitle a, a[id^='job_']",
     },
+    # Greenhouse board (boards.greenhouse.io)
+    "greenhouse": {
+        "cards": ".opening, li.opening, [class*='opening']",
+        "title": "a[href*='/jobs/'], a",
+        "company": ".company-name, h1, [class*='company']",
+        "location": ".location, span.location, [class*='location']",
+        "link": "a[href*='/jobs/']",
+    },
+    # Lever board (jobs.lever.co)
+    "lever": {
+        "cards": ".posting, [class*='posting']",
+        "title": ".posting-name, h5.posting-name a, [class*='posting-name']",
+        "company": ".posting-company, [class*='company']",
+        "location": ".sort-by-location .sort-by-text, [class*='location']",
+        "link": "a.posting-title, a[href*='lever.co']",
+    },
 }
 
 GENERIC_SELECTORS = {
@@ -89,10 +113,15 @@ GENERIC_SELECTORS = {
 }
 
 
-def build_url(portal: str, search_term: str, location: str) -> str | None:
+def build_url(portal: str, search_term: str, location: str, config: dict) -> str | None:
+    # Greenhouse / Lever: use company_url directly
+    if portal in ("greenhouse", "lever", "company_ats", "official"):
+        return config.get("company_url") or None
+
     template = PORTAL_URLS.get(portal)
     if not template:
         return None
+
     slug = search_term.lower().replace(" ", "-")
     loc_slug = location.lower().replace(" ", "-")
     return template.format(
@@ -103,15 +132,76 @@ def build_url(portal: str, search_term: str, location: str) -> str | None:
     )
 
 
+def try_linkedin_login(page, email: str, password: str) -> bool:
+    """
+    Attempt LinkedIn login if we land on a login/auth-wall page.
+    Returns True if login was attempted, False if credentials missing or page not a login wall.
+    """
+    if not email or not password:
+        return False
+
+    current_url = page.url
+    is_login_wall = any(x in current_url for x in [
+        "linkedin.com/login",
+        "linkedin.com/uas/login",
+        "linkedin.com/authwall",
+        "linkedin.com/checkpoint",
+    ])
+
+    # Also detect login form on page
+    has_login_form = page.query_selector("#username, input[name='session_key'], input[autocomplete='username']") is not None
+
+    if not is_login_wall and not has_login_form:
+        return False
+
+    try:
+        # Fill email
+        email_sel = "#username, input[name='session_key'], input[autocomplete='username']"
+        page.wait_for_selector(email_sel, timeout=8_000)
+        page.fill(email_sel, email)
+
+        # Fill password
+        pass_sel = "#password, input[name='session_password'], input[type='password']"
+        page.fill(pass_sel, password)
+
+        # Submit
+        page.click("button[type='submit'], .login__form_action_container button")
+        page.wait_for_load_state("domcontentloaded", timeout=15_000)
+        time.sleep(2)
+        return True
+    except Exception as exc:
+        sys.stderr.write(f"[camoufox] LinkedIn login attempt failed: {exc}\n")
+        return False
+
+
+def try_naukri_login(page, email: str, password: str) -> bool:
+    """Attempt Naukri login if login modal appears."""
+    if not email or not password:
+        return False
+
+    has_login = page.query_selector("#usernameField, input[placeholder*='Email'], input[name='username']") is not None
+    if not has_login:
+        return False
+
+    try:
+        page.fill("#usernameField, input[placeholder*='Email'], input[name='username']", email)
+        page.fill("#passwordField, input[type='password']", password)
+        page.click("button[type='submit'], .loginButton, [class*='login-btn']")
+        page.wait_for_load_state("domcontentloaded", timeout=15_000)
+        time.sleep(2)
+        return True
+    except Exception as exc:
+        sys.stderr.write(f"[camoufox] Naukri login attempt failed: {exc}\n")
+        return False
+
+
 def extract_jobs(page, portal: str, results_wanted: int) -> list[dict]:
     sel = PORTAL_SELECTORS.get(portal, GENERIC_SELECTORS)
     jobs = []
 
     try:
-        # Wait for job cards to appear
         page.wait_for_selector(sel["cards"], timeout=15_000)
     except Exception:
-        # Fallback: wait a moment and try generic
         time.sleep(3)
         sel = GENERIC_SELECTORS
 
@@ -166,8 +256,12 @@ def main():
     search_term = config.get("search_term", "software engineer")
     location = config.get("location", "India")
     results_wanted = int(config.get("results_wanted", 20))
+    linkedin_email = config.get("linkedin_email", "")
+    linkedin_password = config.get("linkedin_password", "")
+    naukri_email = config.get("naukri_email", "")
+    naukri_password = config.get("naukri_password", "")
 
-    url = build_url(portal, search_term, location)
+    url = build_url(portal, search_term, location, config)
     if not url:
         print(json.dumps({"jobs": [], "error": f"No URL template for portal: {portal}"}))
         return 0
@@ -177,8 +271,18 @@ def main():
         page = browser.new_page()
         try:
             page.goto(url, timeout=30_000, wait_until="domcontentloaded")
-            # Small pause to let JS render
             time.sleep(2)
+
+            # Attempt portal-specific login if credentials provided
+            if portal == "linkedin":
+                logged_in = try_linkedin_login(page, linkedin_email, linkedin_password)
+                if logged_in:
+                    # After login, navigate to the jobs search URL
+                    page.goto(url, timeout=30_000, wait_until="domcontentloaded")
+                    time.sleep(2)
+            elif portal == "naukri":
+                try_naukri_login(page, naukri_email, naukri_password)
+
             jobs = extract_jobs(page, portal, results_wanted)
         except Exception as exc:
             print(json.dumps({"jobs": [], "error": str(exc)}))

@@ -27,6 +27,18 @@ PY
     info "Found $PYTHON_BIN, but python-jobspy currently needs Python 3.9-3.12. Bootstrap will download a portable Python 3.12 runtime instead."
   fi
 fi
+
+# ── Optional enhanced scraping packages ─────────────────────────────────────
+# jobspy2  : speedyapply fork — multi-site LinkedIn/Indeed/Glassdoor/ZipRecruiter
+# scikit-learn: enables cosine-similarity ATS scoring in ats_scorer.py
+# Both are optional — app works without them, but these improve results.
+if [ -n "$PYTHON_BIN" ]; then
+  info "Installing optional enhanced scraping packages (jobspy2, scikit-learn)..."
+  "$PYTHON_BIN" -m pip install --quiet --upgrade jobspy2 scikit-learn 2>/dev/null || \
+    info "Optional packages (jobspy2, scikit-learn) could not be auto-installed. Run manually: pip install jobspy2 scikit-learn"
+fi
+# ────────────────────────────────────────────────────────────────────────────
+
 info "Optional OCR helpers on macOS: brew install poppler tesseract"
 
 info "Running native no-Docker bootstrap..."
