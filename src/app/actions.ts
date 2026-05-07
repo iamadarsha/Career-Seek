@@ -255,6 +255,80 @@ function buildProviderPatch(
   };
 }
 
+/** Maps provider name → the primary env var name its API key lives under */
+const PROVIDER_ENV_KEY: Record<string, string> = {
+  gemini: 'GEMINI_API_KEY',
+  openai: 'OPENAI_API_KEY',
+  anthropic: 'ANTHROPIC_API_KEY',
+  groq: 'GROQ_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
+  'openai-compatible': 'OPENAI_COMPATIBLE_API_KEY',
+  ollama: 'OLLAMA_API_KEY',
+};
+
+/** Additional env var aliases to write for cross-compatibility */
+const PROVIDER_ENV_ALIASES: Record<string, string[]> = {
+  gemini: ['GOOGLE_GENERATIVE_AI_API_KEY', 'GOOGLE_AI_API_KEY'],
+};
+
+/** For providers with a configurable base URL, the env var to write it to */
+const PROVIDER_BASE_URL_ENV: Record<string, string> = {
+  openai: 'OPENAI_BASE_URL',
+  anthropic: 'ANTHROPIC_BASE_URL',
+  groq: 'GROQ_BASE_URL',
+  deepseek: 'DEEPSEEK_BASE_URL',
+  'openai-compatible': 'OPENAI_COMPATIBLE_BASE_URL',
+  ollama: 'OLLAMA_BASE_URL',
+};
+
+/**
+ * Write the active AI provider key + model + base URL into .env.local so every
+ * Next.js server restart picks them up without manual file edits.
+ * Called after every successful provider validation.
+ */
+async function syncProviderToEnvFile(
+  provider: AIProviderName,
+  settings: { apiKey?: string; model?: string; baseUrl?: string },
+): Promise<void> {
+  try {
+    const { updateEnvFile } = await import('@/lib/env-writer');
+    const updates: Record<string, string> = {};
+
+    // Primary key
+    const primaryEnvKey = PROVIDER_ENV_KEY[provider];
+    if (primaryEnvKey && settings.apiKey?.trim()) {
+      updates[primaryEnvKey] = settings.apiKey.trim();
+    }
+
+    // Aliases (e.g. GOOGLE_GENERATIVE_AI_API_KEY for Gemini)
+    const aliases = PROVIDER_ENV_ALIASES[provider] || [];
+    for (const alias of aliases) {
+      if (settings.apiKey?.trim()) {
+        updates[alias] = settings.apiKey.trim();
+      }
+    }
+
+    // Base URL
+    const baseUrlEnvKey = PROVIDER_BASE_URL_ENV[provider];
+    if (baseUrlEnvKey && settings.baseUrl?.trim()) {
+      updates[baseUrlEnvKey] = settings.baseUrl.trim();
+    }
+
+    // Active provider + model markers so the runtime always picks the right one
+    updates['CAREER_SEEK_AI_PROVIDER'] = provider;
+    if (settings.model?.trim()) {
+      updates['CAREER_SEEK_AI_MODEL'] = settings.model.trim();
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updateEnvFile(updates);
+    }
+  } catch (error) {
+    // Non-fatal — settings.json is the authoritative store; .env.local is a convenience
+    logger.warn({ err: error }, '[syncProviderToEnvFile] failed to write .env.local — settings.json is still updated');
+  }
+}
+
 export async function getOnboardingState() {
   const db = getDb();
   const { profileId } = resolveContext();
@@ -420,13 +494,23 @@ export async function updateAIProviderFromSettings(input: {
   }
 
   const patch = buildProviderPatch(provider, input);
-  saveAppConfig({
+  const savedConfig = {
     ...patch.next,
     isConfigured: patch.current.isConfigured,
     onboardingVersion: patch.current.onboardingVersion || ONBOARDING_FLOW_VERSION,
     onboardingStage: patch.current.onboardingStage,
     onboardingStep: patch.current.onboardingStep,
     lastKeyValidationAt: new Date().toISOString(),
+  };
+  saveAppConfig(savedConfig);
+
+  // ── NEW: persist key + model + base URL into .env.local so the server
+  //         process picks them up after the next restart without manual edits.
+  const effectiveSettings = patch.next.aiProviders?.[provider] || {};
+  await syncProviderToEnvFile(provider, {
+    apiKey: effectiveSettings.apiKey,
+    model: effectiveSettings.model,
+    baseUrl: effectiveSettings.baseUrl,
   });
 
   return result;
@@ -964,15 +1048,6 @@ export async function deleteProfile(profileId: number) {
 
 // ── Setup Wizard ─────────────────────────────────────────────────────────────
 
-/** Maps provider name → the env var name its API key lives under */
-const PROVIDER_ENV_KEY: Record<string, string> = {
-  gemini: 'GEMINI_API_KEY',
-  openai: 'OPENAI_API_KEY',
-  anthropic: 'ANTHROPIC_API_KEY',
-  groq: 'GROQ_API_KEY',
-  deepseek: 'DEEPSEEK_API_KEY',
-};
-
 /**
  * Save all first-run credentials in one shot:
  *  1. AI provider config → settings.json (marks provider as configured)
@@ -989,6 +1064,9 @@ export async function saveSetupCredentials(payload: {
   naukriEmail?: string;
   naukriPassword?: string;
   serpApiKey?: string;
+  meilisearchUrl?: string;
+  meilisearchApiKey?: string;
+  qdrantUrl?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const { updateEnvFile } = await import('@/lib/env-writer');
@@ -1010,11 +1088,22 @@ export async function saveSetupCredentials(payload: {
     // 2. Build env updates + DB upserts for optional credentials
     const envUpdates: Record<string, string> = {};
 
-    // AI key
+    // AI key — primary + aliases
     const aiEnvKey = PROVIDER_ENV_KEY[provider];
     if (aiEnvKey && payload.aiKey.trim()) {
       envUpdates[aiEnvKey] = payload.aiKey.trim();
     }
+    const aliases = PROVIDER_ENV_ALIASES[provider] || [];
+    for (const alias of aliases) {
+      if (payload.aiKey.trim()) envUpdates[alias] = payload.aiKey.trim();
+    }
+    const baseUrlKey = PROVIDER_BASE_URL_ENV[provider];
+    if (baseUrlKey && payload.aiBaseUrl?.trim()) {
+      envUpdates[baseUrlKey] = payload.aiBaseUrl.trim();
+    }
+    // Always stamp the active provider + model
+    envUpdates['CAREER_SEEK_AI_PROVIDER'] = provider;
+    if (payload.aiModel.trim()) envUpdates['CAREER_SEEK_AI_MODEL'] = payload.aiModel.trim();
 
     const db = getDb();
 
@@ -1036,7 +1125,39 @@ export async function saveSetupCredentials(payload: {
     addCred('linkedin_password', 'LINKEDIN_PASSWORD', payload.linkedinPassword);
     addCred('naukri_email',      'NAUKRI_EMAIL',      payload.naukriEmail);
     addCred('naukri_password',   'NAUKRI_PASSWORD',   payload.naukriPassword);
-    addCred('serpapi_key',       'SERPAPI_API_KEY',   payload.serpApiKey);
+    // Write both SERPAPI_API_KEY (used by google-jobs provider) and SERP_API_KEY (alias)
+    if (payload.serpApiKey?.trim()) {
+      addCred('serpapi_key', 'SERPAPI_API_KEY', payload.serpApiKey);
+      envUpdates['SERP_API_KEY'] = payload.serpApiKey.trim();
+    }
+
+    // Meilisearch
+    if (payload.meilisearchUrl?.trim()) {
+      envUpdates['MEILI_HOST'] = payload.meilisearchUrl.trim();
+      envUpdates['MEILISEARCH_URL'] = payload.meilisearchUrl.trim();
+      upsertSetting('meilisearch_url', payload.meilisearchUrl);
+    } else {
+      // Default to localhost so health check resolves it without extra config
+      envUpdates['MEILI_HOST'] = 'http://127.0.0.1:7700';
+      envUpdates['MEILISEARCH_URL'] = 'http://127.0.0.1:7700';
+    }
+    if (payload.meilisearchApiKey?.trim()) {
+      envUpdates['MEILISEARCH_API_KEY'] = payload.meilisearchApiKey.trim();
+      upsertSetting('meilisearch_api_key', payload.meilisearchApiKey);
+    } else {
+      envUpdates['MEILISEARCH_API_KEY'] = 'career-seek-local';
+    }
+
+    // Qdrant
+    if (payload.qdrantUrl?.trim()) {
+      envUpdates['QDRANT_URL'] = payload.qdrantUrl.trim();
+      envUpdates['JOBS_QDRANT_URL'] = payload.qdrantUrl.trim();
+      envUpdates['CAREER_SEEK_ENABLE_QDRANT'] = '1';
+      upsertSetting('qdrant_url', payload.qdrantUrl);
+    } else {
+      envUpdates['QDRANT_URL'] = 'http://127.0.0.1:6333';
+      envUpdates['JOBS_QDRANT_URL'] = 'http://127.0.0.1:6333';
+    }
 
     // 3. Write to .env.local
     if (Object.keys(envUpdates).length > 0) {
@@ -1058,16 +1179,20 @@ export async function readSavedPortalCredentials(): Promise<{
   linkedinEmail?: string;
   naukriEmail?: string;
   hasSerpApi: boolean;
+  hasMeilisearch: boolean;
+  hasQdrant: boolean;
 }> {
   try {
     const { readEnvKeys } = await import('@/lib/env-writer');
-    const vals = readEnvKeys(['LINKEDIN_EMAIL', 'NAUKRI_EMAIL', 'SERPAPI_API_KEY']);
+    const vals = readEnvKeys(['LINKEDIN_EMAIL', 'NAUKRI_EMAIL', 'SERPAPI_API_KEY', 'SERP_API_KEY', 'MEILI_HOST', 'MEILISEARCH_URL', 'QDRANT_URL', 'JOBS_QDRANT_URL']);
     return {
       linkedinEmail: vals['LINKEDIN_EMAIL'] || undefined,
       naukriEmail: vals['NAUKRI_EMAIL'] || undefined,
-      hasSerpApi: Boolean(vals['SERPAPI_API_KEY']),
+      hasSerpApi: Boolean(vals['SERPAPI_API_KEY'] || vals['SERP_API_KEY']),
+      hasMeilisearch: Boolean(vals['MEILI_HOST'] || vals['MEILISEARCH_URL']),
+      hasQdrant: Boolean(vals['QDRANT_URL'] || vals['JOBS_QDRANT_URL']),
     };
   } catch {
-    return { hasSerpApi: false };
+    return { hasSerpApi: false, hasMeilisearch: false, hasQdrant: false };
   }
 }

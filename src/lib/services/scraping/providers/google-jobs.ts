@@ -625,8 +625,17 @@ async function runGoogleSearchFallback(input: ScrapeInput) {
   }
 }
 
+/** Resolve SerpAPI key — accepts both SERPAPI_API_KEY and SERP_API_KEY */
+function getSerpApiKey(): string | undefined {
+  return (
+    process.env.SERPAPI_API_KEY?.trim() ||
+    process.env.SERP_API_KEY?.trim() ||
+    undefined
+  );
+}
+
 async function runSerpApi(input: ScrapeInput): Promise<RawScrapedJob[]> {
-  const apiKey = process.env.SERPAPI_API_KEY?.trim();
+  const apiKey = getSerpApiKey();
   if (!apiKey) throw new Error('no_serpapi_key');
 
   const query = [
@@ -692,7 +701,7 @@ export class GoogleJobsProvider implements ScrapeProvider {
   }
 
   async isAvailable(): Promise<boolean> {
-    return hasPythonJobSpy() || Boolean(this.adapters?.has('google_jobs'));
+    return hasPythonJobSpy() || Boolean(getSerpApiKey()) || Boolean(this.adapters?.has('google_jobs'));
   }
 
   async scrape(input: ScrapeInput): Promise<PortalScanResult> {
@@ -703,7 +712,8 @@ export class GoogleJobsProvider implements ScrapeProvider {
     await waitForScrapeDomainSlot('google_jobs', 1, 2_000);
 
     // SerpAPI: structured Google Jobs data, no CAPTCHA, 100 free req/month
-    if (process.env.SERPAPI_API_KEY?.trim()) {
+    // Accepts both SERPAPI_API_KEY and SERP_API_KEY env vars
+    if (getSerpApiKey()) {
       try {
         input.onProgress?.('Querying Google Jobs via SerpAPI…');
         const serpJobs = await runSerpApi(input);
