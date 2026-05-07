@@ -12,13 +12,79 @@ function hasBrowserUse(): boolean {
   return result.status === 0;
 }
 
+/**
+ * FIX #3: read live .env.local via getAIRuntimeEnv instead of stale process.env.
+ * Previously hasLlmApiKey() always returned false after a Settings save because
+ * process.env is frozen at startup and never reflects .env.local changes.
+ */
 function hasLlmApiKey(): boolean {
-  return Boolean(
-    process.env.OPENAI_API_KEY?.trim() ||
-    process.env.ANTHROPIC_API_KEY?.trim() ||
-    process.env.GEMINI_API_KEY?.trim() ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim(),
-  );
+  try {
+    const { getAIRuntimeEnv } = require('../../config') as typeof import('../../config');
+    const env = getAIRuntimeEnv();
+    return Boolean(
+      env.OPENAI_API_KEY?.trim() ||
+      env.ANTHROPIC_API_KEY?.trim() ||
+      env.GEMINI_API_KEY?.trim() ||
+      env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() ||
+      env.GROQ_API_KEY?.trim() ||
+      env.DEEPSEEK_API_KEY?.trim(),
+    );
+  } catch {
+    // Fallback to process.env if config module fails
+    return Boolean(
+      process.env.OPENAI_API_KEY?.trim() ||
+      process.env.ANTHROPIC_API_KEY?.trim() ||
+      process.env.GEMINI_API_KEY?.trim() ||
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim(),
+    );
+  }
+}
+
+/**
+ * FIX #9: respect user's chosen provider from settings.json as first priority
+ * instead of the hardcoded OPENAI → ANTHROPIC → Gemini waterfall.
+ */
+function getLlmProviderAndKey(): { llmProvider: string; llmApiKey: string } {
+  try {
+    const { getAIRuntimeEnv, getAppConfig } = require('../../config') as typeof import('../../config');
+    const config = getAppConfig();
+    const env = getAIRuntimeEnv(config);
+
+    // Priority 1: user's chosen provider from settings.json (if it has a key)
+    const chosenProvider = config.aiProvider;
+    const keyMap: Record<string, string> = {
+      openai: env.OPENAI_API_KEY || '',
+      anthropic: env.ANTHROPIC_API_KEY || '',
+      gemini: env.GEMINI_API_KEY || env.GOOGLE_GENERATIVE_AI_API_KEY || '',
+      groq: env.GROQ_API_KEY || '',
+      deepseek: env.DEEPSEEK_API_KEY || '',
+    };
+
+    if (chosenProvider && keyMap[chosenProvider]) {
+      return { llmProvider: chosenProvider, llmApiKey: keyMap[chosenProvider] };
+    }
+
+    // Priority 2: first available provider with a key
+    for (const [provider, key] of Object.entries(keyMap)) {
+      if (key) return { llmProvider: provider, llmApiKey: key };
+    }
+
+    return { llmProvider: 'gemini', llmApiKey: '' };
+  } catch {
+    // Fallback: original hardcoded order
+    const llmProvider = process.env.OPENAI_API_KEY
+      ? 'openai'
+      : process.env.ANTHROPIC_API_KEY
+        ? 'anthropic'
+        : 'gemini';
+    const llmApiKey =
+      process.env.OPENAI_API_KEY ||
+      process.env.ANTHROPIC_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+      '';
+    return { llmProvider, llmApiKey };
+  }
 }
 
 function buildTask(portal: string, searchTerm: string, location: string): string {
@@ -68,7 +134,7 @@ export class BrowserUseAgentProvider implements ScrapeProvider {
   }
 
   async isAvailable(): Promise<boolean> {
-    return hasBrowserUse() && hasLlmApiKey();
+    return hasBrowserUse() && hasLlmApiKey(); // FIX #3: now reads live env
   }
 
   async scrape(input: ScrapeInput): Promise<PortalScanResult> {
@@ -77,18 +143,8 @@ export class BrowserUseAgentProvider implements ScrapeProvider {
       .join(' ');
     const location = input.query.locations?.[0] || 'India';
 
-    const llmProvider = process.env.OPENAI_API_KEY
-      ? 'openai'
-      : process.env.ANTHROPIC_API_KEY
-        ? 'anthropic'
-        : 'gemini';
-
-    const llmApiKey =
-      process.env.OPENAI_API_KEY ||
-      process.env.ANTHROPIC_API_KEY ||
-      process.env.GEMINI_API_KEY ||
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-      '';
+    // FIX #3 + FIX #9: use live env and respect user's chosen provider
+    const { llmProvider, llmApiKey } = getLlmProviderAndKey();
 
     const config = {
       portal: input.portal,

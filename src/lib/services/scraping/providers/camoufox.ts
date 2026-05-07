@@ -40,6 +40,24 @@ function mapJob(portal: string, job: any): RawScrapedJob {
   };
 }
 
+/**
+ * FIX #11: read LinkedIn/Naukri credentials from live .env.local and pass them
+ * into the Python subprocess environment. Previously the spawned Python process
+ * only inherited process.env (stale) and never had credentials, making
+ * Camoufox unable to log in to LinkedIn or Naukri.
+ */
+function getLiveCredentials(): Record<string, string> {
+  try {
+    const { readEnvKeys } = require('../../../env-writer') as typeof import('../../../env-writer');
+    return readEnvKeys([
+      'LINKEDIN_EMAIL', 'LINKEDIN_PASSWORD',
+      'NAUKRI_EMAIL', 'NAUKRI_PASSWORD',
+    ]);
+  } catch {
+    return {};
+  }
+}
+
 export class CamoufoxProvider implements ScrapeProvider {
   readonly id = 'camoufox';
   readonly label = 'Camoufox anti-detect browser';
@@ -53,6 +71,9 @@ export class CamoufoxProvider implements ScrapeProvider {
   }
 
   async scrape(input: ScrapeInput): Promise<PortalScanResult> {
+    // FIX #11: merge live credentials into the config passed to the Python script
+    const liveCredentials = getLiveCredentials();
+
     const config = {
       portal: input.portal,
       search_term: [input.query.titleVariants?.[0], ...(input.query.keywords || []).slice(0, 3)]
@@ -61,6 +82,11 @@ export class CamoufoxProvider implements ScrapeProvider {
       location: input.query.locations?.[0] || 'India',
       is_remote: Boolean(input.query.isRemote),
       results_wanted: 20,
+      // FIX #11: pass credentials so camoufox_runner.py can log in
+      linkedin_email: liveCredentials.LINKEDIN_EMAIL || '',
+      linkedin_password: liveCredentials.LINKEDIN_PASSWORD || '',
+      naukri_email: liveCredentials.NAUKRI_EMAIL || '',
+      naukri_password: liveCredentials.NAUKRI_PASSWORD || '',
     };
 
     const jobs = await runPythonScript(

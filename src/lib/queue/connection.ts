@@ -1,9 +1,25 @@
 import Redis from 'ioredis';
 import { logger } from '@/lib/logger';
 
-const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+/**
+ * FIX #6: resolve Redis URL lazily at connection time instead of at module load.
+ * Previously `const redisUrl = process.env.REDIS_URL` was evaluated once when
+ * the module was first imported — if REDIS_URL was written to .env.local after
+ * that point it was permanently ignored for the lifetime of the process.
+ */
+function getRedisUrl(): string {
+  try {
+    const { readEnvKeys } = require('@/lib/env-writer') as typeof import('@/lib/env-writer');
+    const live = readEnvKeys(['REDIS_URL']);
+    if (live.REDIS_URL) return live.REDIS_URL;
+  } catch {
+    // non-fatal — fall through
+  }
+  return process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+}
 
 export function createRedisConnection() {
+  const redisUrl = getRedisUrl(); // FIX #6: resolved lazily
   const connection = new Redis(redisUrl, {
     maxRetriesPerRequest: null,
     enableReadyCheck: true,
@@ -26,6 +42,7 @@ export async function closeRedisConnection() {
 }
 
 export async function assertRedisReady(timeoutMs = 3_000) {
+  const redisUrl = getRedisUrl(); // FIX #6: resolved lazily
   const probe = new Redis(redisUrl, {
     lazyConnect: true,
     maxRetriesPerRequest: 0,
