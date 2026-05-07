@@ -1,43 +1,39 @@
 #!/usr/bin/env python3
+"""
+JobSpy runner — tries jobspy2 (speedyapply fork, multi-site) first,
+falls back to legacy jobspy package if jobspy2 is not installed.
+
+Supported sites: linkedin, indeed, naukri, glassdoor, zip_recruiter
+
+Called by python-jobspy.ts / jobspy2.ts providers.
+"""
 import json
 import sys
+import time
 
 
-def main() -> int:
+JOBSPY2_SITES = {"linkedin", "indeed", "glassdoor", "zip_recruiter"}
+LEGACY_SITES = {"indeed", "naukri"}
+
+
+def _try_jobspy2(config: dict) -> list | None:
+    """Attempt scrape with jobspy2. Returns list of jobs or None on import error."""
     try:
-        from jobspy import scrape_jobs
-    except Exception as exc:
-        sys.stderr.write(f"python-jobspy is not installed: {exc}\n")
-        return 2
+        from jobspy import scrape_jobs  # jobspy2 exposes same API
+    except ImportError:
+        return None
 
-    try:
-        config = json.loads(sys.argv[1])
-    except Exception as exc:
-        sys.stderr.write(f"Invalid JSON config: {exc}\n")
-        return 2
+    site = config.get("site_name", "indeed")
+    # jobspy2 multi-site: pass a list
+    sites = [site] if site else ["indeed"]
 
-    try:
-        jobs = scrape_jobs(
-            site_name=[config.get("site_name")],
-            search_term=config.get("search_term") or "product manager",
-            google_search_term=config.get("google_search_term"),
-            location=config.get("location") or "India",
-            results_wanted=int(config.get("results_wanted") or 25),
-            country_indeed=config.get("country_indeed") or "india",
-            is_remote=config.get("is_remote"),
-            hours_old=config.get("hours_old"),
-            description_format="markdown",
-        )
-        if hasattr(jobs, "to_dict"):
-            records = jobs.to_dict(orient="records")
-        else:
-            records = list(jobs or [])
-        print(json.dumps({"jobs": records}, default=str))
-        return 0
-    except Exception as exc:
-        sys.stderr.write(str(exc) + "\n")
-        return 1
+    kwargs = dict(
+        site_name=sites,
+        search_term=config.get("search_term") or "product manager",
+        location=config.get("location") or "India",
+        results_wanted=int(config.get("results_wanted") or 25),
+        description_format="markdown",
+    )
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    # Optional params — only pass if provided
+    if config.get("google_search_term"):
