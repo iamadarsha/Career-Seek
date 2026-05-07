@@ -27,13 +27,15 @@ const devMode = args.has('--dev') || process.env.CAREER_SEEK_DEV === '1';
 const skipBuild = args.has('--skip-build') || process.env.CAREER_SEEK_SKIP_BUILD === '1';
 const repair = args.has('--repair');
 const skipNativeServices = args.has('--skip-services') || process.env.CAREER_SEEK_SKIP_NATIVE_SERVICES === '1';
-const port = process.env.PORT || process.env.CAREER_SEEK_PORT || '3000';
+const requestedPort = Number(process.env.PORT || process.env.CAREER_SEEK_PORT || '3000');
 const host = process.env.CAREER_SEEK_HOST || '127.0.0.1';
 const displayHost = host === '0.0.0.0' || host === '::' ? 'localhost' : host;
 const baseDir = getBaseDir();
 const children = new Set();
 const appChildren = new Set();
 const nativeChildren = new Set();
+// Port is resolved after findFreePort() — use a let so it can be updated.
+let port = String(requestedPort);
 let runtimeEnv = { ...process.env, JOBHUNT_DATA_DIR: baseDir, PORT: port };
 const venvPython = process.platform === 'win32'
   ? path.join(process.cwd(), '.venv-career-seek', 'Scripts', 'python.exe')
@@ -89,8 +91,67 @@ function spawnManaged(label, bin, commandArgs, options = {}) {
   return child;
 }
 
+/**
+ * Spawn the BullMQ worker with automatic crash recovery.
+ * Restarts up to MAX_RESTARTS times within RESTART_WINDOW_MS.
+ * If the worker keeps crashing the web app stays up, just no background processing.
+ */
+function spawnWorkerWithRestart() {
+  const MAX_RESTARTS = 5;
+  const RESTART_WINDOW_MS = 60_000;
+  const restartTimes = [];
+  let currentWorker = null;
+
+  function start(attempt = 0) {
+    if (shuttingDown) return null;
+    const label = attempt === 0 ? 'background job worker' : `background job worker (restart ${attempt})`;
+    const child = spawn(npmCmd, ['run', 'worker'], {
+      stdio: 'inherit',
+      env: { ...runtimeEnv },
+      shell: false,
+    });
+    trackChild(child, appChildren);
+    child.on('error', (err) => console.error(`[launch] Worker error: ${err.message}`));
+    child.on('exit', (code, signal) => {
+      if (shuttingDown) return;
+      const now = Date.now();
+      // Drop timestamps outside the window
+      while (restartTimes.length && now - restartTimes[0] > RESTART_WINDOW_MS) restartTimes.shift();
+
+      if (code === 0 || signal === 'SIGTERM' || signal === 'SIGINT') return; // clean exit
+
+      restartTimes.push(now);
+      if (restartTimes.length > MAX_RESTARTS) {
+        console.error(`[launch] Worker crashed ${MAX_RESTARTS + 1} times in ${RESTART_WINDOW_MS / 1000}s — giving up. Web app is still running; restart Career Seek to restore background scanning.`);
+        return;
+      }
+
+      const delayMs = Math.min(1_000 * 2 ** (attempt), 30_000); // 1s, 2s, 4s … 30s
+      console.warn(`[launch] Worker exited (code=${code ?? signal}). Restarting in ${delayMs / 1000}s…`);
+      setTimeout(() => { currentWorker = start(attempt + 1); }, delayMs);
+    });
+    return child;
+  }
+
+  currentWorker = start();
+  return { get child() { return currentWorker; } };
+}
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Returns the first TCP port >= startPort that is not currently in use. */
+async function findFreePort(startPort) {
+  const { createServer } = await import('net');
+  return new Promise((resolve) => {
+    function tryPort(p) {
+      const srv = createServer();
+      srv.listen(p, '127.0.0.1', () => { srv.close(() => resolve(p)); });
+      srv.on('error', () => tryPort(p + 1));
+    }
+    tryPort(startPort);
+  });
 }
 
 async function waitForChildrenToExit(group, timeoutMs) {
@@ -198,9 +259,22 @@ if (!devMode && !skipBuild) {
   const buildIdPath = path.resolve(process.cwd(), '.next', 'BUILD_ID');
   if (!fs.existsSync(buildIdPath)) {
     console.log('\n[launch] Production build not found; building now...');
-    run(npmCmd, ['run', 'build'], { env: runtimeEnv });
+    // Increase Node heap to 4 GB so next build never OOMs on 8 GB machines.
+    const buildEnv = {
+      ...runtimeEnv,
+      NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096'].filter(Boolean).join(' '),
+    };
+    run(npmCmd, ['run', 'build'], { env: buildEnv });
   }
 }
+
+// Auto-detect a free port — port 3000 may be taken by another app.
+const freePort = await findFreePort(requestedPort);
+if (freePort !== requestedPort) {
+  console.warn(`\n[launch] Port ${requestedPort} is in use. Using port ${freePort} instead.`);
+}
+port = String(freePort);
+runtimeEnv = { ...runtimeEnv, PORT: port };
 
 const serverArgs = devMode
   ? ['run', 'dev', '--', '-H', host, '-p', port]
@@ -212,8 +286,8 @@ void waitForAppAndOpen();
 // already started or confirmed Redis at this point, so we can always launch the worker.
 const effectiveRedisUrl = runtimeEnv.REDIS_URL || 'redis://127.0.0.1:6379';
 runtimeEnv = { ...runtimeEnv, REDIS_URL: effectiveRedisUrl };
-let jobWorker = null;
-jobWorker = spawnManaged('background job worker', npmCmd, ['run', 'worker']);
+const workerHandle = spawnWorkerWithRestart();
+let jobWorker = workerHandle?.child ?? null;
 if (process.env.CAREER_SEEK_ENABLE_BULL_BOARD === '1') {
   spawnManaged('Bull Board', npmCmd, ['run', 'bull-board']);
 }
@@ -232,14 +306,8 @@ appServer.on('exit', (code) => {
   if (shuttingDown) return;
   if (code && code !== 0) {
     console.error(`[launch] App server exited with code ${code}.`);
-    jobWorker?.kill('SIGTERM');
+    workerHandle?.child?.kill('SIGTERM');
     process.exit(code);
   }
 });
-
-jobWorker?.on('exit', (code) => {
-  if (shuttingDown) return;
-  if (code && code !== 0) {
-    console.error(`[launch] Worker exited with code ${code}. The web app can keep running, but background scans may be unavailable.`);
-  }
-});
+// Worker restart is handled by spawnWorkerWithRestart(); no additional exit handler needed.

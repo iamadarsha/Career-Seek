@@ -32,10 +32,40 @@ const skipBuild = process.env.CAREER_SEEK_SKIP_BUILD === '1';
 const major = nodeMajor();
 
 function runPythonVersionCheck(python) {
+  // On Windows, python3 / python may be the Microsoft Store stub.
+  // The stub exits immediately with code 9009 (or opens the Store and hangs).
+  // Detect it by running with a short timeout and checking the path.
+  if (process.platform === 'win32') {
+    const wherePy = spawnSync('where.exe', [python], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const locations = (wherePy.stdout || '').split('\n').map((l) => l.trim()).filter(Boolean);
+    const isStoreStub = locations.some((loc) =>
+      loc.toLowerCase().includes('appdata\\local\\microsoft\\windowsapps') ||
+      loc.toLowerCase().includes('windowsapps'),
+    );
+    if (isStoreStub) {
+      return {
+        ok: false,
+        version: 'Microsoft Store stub',
+        message: `The "${python}" command resolves to the Windows Store stub (${locations[0]}). Career Seek will download a portable Python 3.12 runtime instead.`,
+      };
+    }
+  }
+
   const result = spawnSync(python, ['-c', 'import sys; print(".".join(map(str, sys.version_info[:3]))); raise SystemExit(0 if sys.version_info >= (3, 9) else 1)'], {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 5_000, // bail if stub hangs on Windows
   });
+
+  // Timed out — almost certainly the Windows Store stub hung waiting for user interaction
+  if (result.error?.code === 'ETIMEDOUT' || result.signal === 'SIGTERM') {
+    return {
+      ok: false,
+      version: 'timed out',
+      message: `"${python}" timed out (likely the Windows Store stub). Career Seek will download a portable Python 3.12 runtime instead.`,
+    };
+  }
+
   const version = (result.stdout || result.stderr || '').trim() || 'unknown version';
   const [major, minor] = version.split('.').map((part) => Number(part));
   if (result.status === 0 && major === 3 && minor >= 13) {
@@ -197,7 +227,13 @@ run(npmCmd, ['run', 'doctor']);
 
 if (!skipBuild) {
   console.log('\nBuilding production app...');
-  run(npmCmd, ['run', 'build']);
+  // next build can exhaust the default 1.5 GB V8 heap on machines with 4-8 GB RAM.
+  // Raise the ceiling to 4 GB; this is harmless on machines with more memory.
+  const buildEnv = {
+    ...process.env,
+    NODE_OPTIONS: [process.env.NODE_OPTIONS, '--max-old-space-size=4096'].filter(Boolean).join(' '),
+  };
+  run(npmCmd, ['run', 'build'], { env: buildEnv });
 }
 
 console.log('\nBootstrap complete.');

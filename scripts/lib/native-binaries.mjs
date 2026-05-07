@@ -211,7 +211,16 @@ async function installGithubBinary({ service, repo, executable }) {
     fs.copyFileSync(downloadPath, executablePath);
   }
 
-  if (!isWindows) fs.chmodSync(executablePath, 0o755);
+  if (!isWindows) {
+    fs.chmodSync(executablePath, 0o755);
+    // macOS Gatekeeper quarantines downloaded files and blocks execution.
+    // Clear the quarantine attribute so the binary can run without a security dialog.
+    if (process.platform === 'darwin') {
+      try {
+        spawnSync('xattr', ['-d', 'com.apple.quarantine', executablePath], { stdio: 'ignore' });
+      } catch { /* xattr not available on Linux — ignore */ }
+    }
+  }
 
   const entry = {
     service,
@@ -312,21 +321,52 @@ async function installRedis() {
     return existing;
   }
 
-  fs.rmSync(prefixDir, { recursive: true, force: true });
-  ensureDir(prefixDir);
-  const packages = await installCondaPackage('redis-server', prefixDir);
-  if (!fs.existsSync(executablePath)) {
-    throw new Error('Redis portable package installed, but redis-server was not found.');
+  // Try conda-forge first; fall back to system Redis if conda download fails.
+  let packages = [];
+  let resolvedExecutablePath = executablePath;
+  let source = 'conda-forge/redis-server';
+
+  try {
+    fs.rmSync(prefixDir, { recursive: true, force: true });
+    ensureDir(prefixDir);
+    packages = await installCondaPackage('redis-server', prefixDir);
+    if (!fs.existsSync(executablePath)) {
+      throw new Error('Conda install finished but redis-server binary was not found.');
+    }
+  } catch (condaError) {
+    console.warn(`[native] Conda Redis install failed (${condaError.message}). Trying system Redis...`);
+    // Look for a system-installed redis-server (Homebrew, apt, choco, etc.)
+    const systemRedis = isWindows
+      ? spawnSync('where.exe', ['redis-server'], { encoding: 'utf8' }).stdout?.trim().split('\n')[0]?.trim()
+      : spawnSync('sh', ['-lc', 'command -v redis-server'], { encoding: 'utf8' }).stdout?.trim();
+
+    if (systemRedis && fs.existsSync(systemRedis)) {
+      console.log(`[native] Using system Redis at ${systemRedis}`);
+      resolvedExecutablePath = systemRedis;
+      source = 'system';
+    } else {
+      console.warn('[native] No system Redis found. BullMQ queues will be unavailable until Redis is installed.');
+      return null;
+    }
   }
-  if (!isWindows) fs.chmodSync(executablePath, 0o755);
+
+  if (!isWindows && resolvedExecutablePath !== executablePath) {
+    // system binary — no chmod needed, already executable
+  } else if (!isWindows) {
+    fs.chmodSync(resolvedExecutablePath, 0o755);
+    // Clear macOS Gatekeeper quarantine on conda-downloaded binary
+    if (process.platform === 'darwin') {
+      try { spawnSync('xattr', ['-d', 'com.apple.quarantine', resolvedExecutablePath], { stdio: 'ignore' }); } catch { }
+    }
+  }
 
   const redisPackage = packages.find((pkg) => pkg.packageName === 'redis-server');
   const entry = {
     service,
-    version: redisPackage?.version || 'unknown',
-    source: 'conda-forge/redis-server',
+    version: redisPackage?.version || 'system',
+    source,
     packages,
-    executablePath,
+    executablePath: resolvedExecutablePath,
     installedAt: new Date().toISOString(),
   };
   manifest.services = { ...(manifest.services || {}), [service]: entry };
