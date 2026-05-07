@@ -12,7 +12,7 @@ const INDEED_SOURCE_HEALTH = {
 };
 const INDEED_JOB_LIMIT = Math.min(Number(process.env.JOBHUNT_INDEED_LIMIT || 25) || 25, 50);
 
-function uniqueVariants(query: JobQuery, limit = 3) {
+function uniqueVariants(query: JobQuery, limit = 5) {
   const seen = new Set<string>();
   const variants: string[] = [];
   for (const value of query.titleVariants || []) {

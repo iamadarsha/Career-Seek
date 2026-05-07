@@ -2,7 +2,7 @@ import { BasePortalAdapter } from './base';
 import { JobQuery, PortalScanResult, RawScrapedJob } from '../types';
 import { BrowserContext } from 'playwright';
 
-function uniqueVariants(query: JobQuery, limit = 3) {
+function uniqueVariants(query: JobQuery, limit = 5) {
   const seen = new Set<string>();
   const variants: string[] = [];
   for (const value of query.titleVariants || []) {
@@ -16,7 +16,7 @@ function uniqueVariants(query: JobQuery, limit = 3) {
   return variants.length ? variants : ['Product Manager'];
 }
 
-function searchLocations(query: JobQuery, limit = 2) {
+function searchLocations(query: JobQuery, limit = 5) {
   const seen = new Set<string>();
   const locations: string[] = [];
   for (const value of query.locations || ['India']) {
@@ -107,7 +107,7 @@ export class NaukriAdapter extends BasePortalAdapter {
     const seen = new Set<string>();
     
     try {
-      for (const roleVariant of uniqueVariants(query, 3)) {
+      for (const roleVariant of uniqueVariants(query, 5)) {
         if (jobs.length >= this.maxJobs) break;
         for (const locationValue of searchLocations(query, 2)) {
           if (jobs.length >= this.maxJobs) break;

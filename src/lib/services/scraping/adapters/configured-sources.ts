@@ -33,7 +33,7 @@ function firstLocation(query: JobQuery) {
   return /anywhere|remote/i.test(location) ? 'India' : location;
 }
 
-function uniqueVariants(query: JobQuery, limit = 3) {
+function uniqueVariants(query: JobQuery, limit = 5) {
   const seen = new Set<string>();
   const variants: string[] = [];
   for (const value of query.titleVariants || []) {
@@ -47,7 +47,7 @@ function uniqueVariants(query: JobQuery, limit = 3) {
   return variants.length ? variants : ['Product Manager'];
 }
 
-function uniqueLocations(query: JobQuery, limit = 2) {
+function uniqueLocations(query: JobQuery, limit = 5) {
   const seen = new Set<string>();
   const locations: string[] = [];
   const raw = query.locations?.length ? query.locations : ['India'];
@@ -122,7 +122,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://www.shine.com/job-search/${encodedTitle(query)}-jobs`,
     ],
     maxJobs: 18,
-    maxTitleVariants: 3,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -134,7 +134,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://www.timesjobs.com/candidate/job-search.html?searchType=Home_Search&from=submit&txtKeywords=${encodedTitle(query)}&txtLocation=${encodedLocation(query)}`,
     ],
     maxJobs: 18,
-    maxTitleVariants: 2,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -146,7 +146,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://www.glassdoor.co.in/Job/india-${slug(firstTitle(query))}-jobs-SRCH_IL.0,5_IN115.htm`,
     ],
     maxJobs: 12,
-    maxTitleVariants: 2,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -159,7 +159,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://www.placementindia.com/job-search/${slug(firstTitle(query))}-jobs.htm`,
     ],
     maxJobs: 18,
-    maxTitleVariants: 2,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -172,7 +172,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://cutshort.io/jobs/${slug(firstTitle(query))}-jobs-in-${slug(firstLocation(query)) || 'india'}`,
     ],
     maxJobs: 18,
-    maxTitleVariants: 3,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -185,7 +185,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://www.hirist.tech/jobs/${slug(firstTitle(query))}`,
     ],
     maxJobs: 18,
-    maxTitleVariants: 3,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -198,7 +198,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://www.iimjobs.com/search/${encodedTitle(query)}.html`,
     ],
     maxJobs: 18,
-    maxTitleVariants: 3,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -211,7 +211,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://www.hirect.in/search?keyword=${encodedTitle(query)}&location=${encodedLocation(query)}`,
     ],
     maxJobs: 15,
-    maxTitleVariants: 2,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -245,7 +245,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://apna.co/jobs?keyword=${encodedTitle(query)}&location=${encodedLocation(query)}`,
     ],
     maxJobs: 15,
-    maxTitleVariants: 2,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -258,7 +258,7 @@ export const CONFIGURED_INDIA_SOURCES: ConfiguredSource[] = [
       `https://www.workindia.in/jobs-in-${slug(firstLocation(query)) || 'india'}/?q=${encodedTitle(query)}`,
     ],
     maxJobs: 15,
-    maxTitleVariants: 2,
+    maxTitleVariants: 5,
     maxLocations: 2,
   },
   {
@@ -301,7 +301,7 @@ export class ConfiguredSourceAdapter extends BasePortalAdapter {
     const seen = new Set<string>();
 
     try {
-      for (const title of uniqueVariants(query, this.config.maxTitleVariants || 2)) {
+      for (const title of uniqueVariants(query, this.config.maxTitleVariants || 5)) {
         if (jobs.length >= (this.config.maxJobs || 12)) break;
         for (const location of uniqueLocations(query, this.config.maxLocations || 2)) {
           if (jobs.length >= (this.config.maxJobs || 12)) break;

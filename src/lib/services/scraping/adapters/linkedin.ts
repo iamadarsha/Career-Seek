@@ -194,7 +194,7 @@ export class LinkedInAdapter extends BasePortalAdapter {
     const jobs: RawScrapedJob[] = [];
     const seen = new Set<string>();
     const keywords = [...query.titleVariants, ...(query.keywords || [])].filter(Boolean).join(' ') || 'product manager';
-    const locations = query.locations?.length ? query.locations.slice(0, 3) : ['India'];
+    const locations = query.locations?.length ? query.locations.slice(0, 5) : ['India'];
 
     for (const location of locations) {
       for (let start = 0; jobs.length < this.maxJobs && start <= 75; start += 25) {

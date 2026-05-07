@@ -85,11 +85,9 @@ export class PythonJobSpyProvider implements ScrapeProvider {
   }
 
   async scrape(input: ScrapeInput): Promise<PortalScanResult> {
-    // Build a richer search term: primary title + up to 4 keywords
-    const searchTerm = [
-      input.query.titleVariants?.[0],
-      ...(input.query.keywords || []).slice(0, 4),
-    ].filter(Boolean).join(' ');
+    // Use only the primary title variant — keyword-stuffed queries are
+    // misparsed by Indeed/Naukri and return irrelevant or zero results.
+    const searchTerm = input.query.titleVariants?.[0] || 'Product Manager';
 
     // Salary min in USD-equivalent (JobSpy works in USD for Indeed); for Indian
     // portals we pass the INR value and let the Python script handle it. Convert

@@ -270,8 +270,11 @@ export class ScanOrchestrator {
           });
 
           // Adaptive Expansion
+          // Trigger when a portal returns fewer than 10 jobs (raised from 5 — 6-9
+          // jobs is still too few to give users a meaningful ranked list).
+          // Max 5 expansion levels to match the full range in expandQuery().
           let expansionLevel = 0;
-          while (scrapeResult.jobs.length < 5 && expansionLevel < 3 && shouldExpandPortal(portalId) && shouldExpandAfterResult(scrapeResult)) {
+          while (scrapeResult.jobs.length < 10 && expansionLevel < 5 && shouldExpandPortal(portalId) && shouldExpandAfterResult(scrapeResult)) {
             expansionLevel++;
             const newQuery = expandQuery(query, expansionLevel);
             onProgress?.({ scanId: scan.id, portal: portalId, message: `Too few results. Expanding search (level ${expansionLevel})...` });
@@ -302,7 +305,7 @@ export class ScanOrchestrator {
             if (expandedResult.failureCode) scrapeResult.failureCode = expandedResult.failureCode;
           }
 
-          if (scrapeResult.jobs.length < 5 && !shouldExpandAfterResult(scrapeResult)) {
+          if (scrapeResult.jobs.length < 10 && !shouldExpandAfterResult(scrapeResult)) {
             onProgress?.({
               scanId: scan.id,
               portal: portalId,

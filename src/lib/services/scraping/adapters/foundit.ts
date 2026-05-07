@@ -4,7 +4,7 @@ import { JobQuery, PortalScanResult, RawScrapedJob } from '../types';
 
 const FOUNDIT_JOB_LIMIT = Math.min(Number(process.env.JOBHUNT_FOUNDIT_LIMIT || 35) || 35, 60);
 
-function uniqueVariants(query: JobQuery, limit = 3) {
+function uniqueVariants(query: JobQuery, limit = 5) {
   const seen = new Set<string>();
   const variants: string[] = [];
   for (const value of query.titleVariants || []) {
@@ -18,7 +18,7 @@ function uniqueVariants(query: JobQuery, limit = 3) {
   return variants.length ? variants : ['Product Manager'];
 }
 
-function searchLocations(query: JobQuery, limit = 2) {
+function searchLocations(query: JobQuery, limit = 5) {
   const seen = new Set<string>();
   const locations: string[] = [];
   for (const value of query.locations || ['India']) {
