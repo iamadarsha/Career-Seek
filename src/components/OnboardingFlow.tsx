@@ -775,14 +775,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-600">N</div>
                           <div>
                             <p className="font-semibold">Naukri</p>
-                            <p className="text-xs text-muted-foreground">Profile-based recommendations · India's largest job board</p>
+                            <p className="text-xs text-muted-foreground">Profile-based recommendations · India&apos;s largest job board</p>
                           </div>
                         </div>
                         {showNaukri ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                       </button>
                       {showNaukri && (
                         <div className="border-t border-card-border p-4 space-y-3">
-                          <p className="text-sm text-muted-foreground">Unlocks Naukri's authenticated listings and profile-matched recommendations.</p>
+                          <p className="text-sm text-muted-foreground">Unlocks Naukri&apos;s authenticated listings and profile-matched recommendations.</p>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <label className="space-y-1.5">
                               <span className="text-sm font-semibold">Email</span>
