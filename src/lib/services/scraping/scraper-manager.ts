@@ -161,11 +161,16 @@ function mergeJobs(existingJobs: RawScrapedJob[], incomingJobs: RawScrapedJob[])
   const keyFor = (job: RawScrapedJob) => {
     const urlKey = String(job.sourceUrl || job.applyUrl || job.url || '').toLowerCase().trim();
     const externalIdKey = job.externalId ? `${job.portal}:${String(job.externalId).toLowerCase().trim()}` : '';
-    const signature = [
-      String(job.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ''),
-      String(job.company || '').toLowerCase().replace(/[^a-z0-9]+/g, ''),
-      String(job.location || '').toLowerCase().replace(/[^a-z0-9]+/g, ''),
-    ].join('|');
+    const titlePart = String(job.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const companyPart = String(job.company || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const locationPart = String(job.location || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const signatureParts = `${titlePart}|${companyPart}|${locationPart}`;
+    // Fix: if all three signature parts are blank, the join produces '||'.
+    // Every unidentifiable job would share that key, dropping all but the first.
+    // Use a random suffix so each such job gets a unique slot in the merge map.
+    const signature = (titlePart || companyPart || locationPart)
+      ? signatureParts
+      : `__unidentifiable__${crypto.randomBytes(8).toString('hex')}`;
     return urlKey || externalIdKey || signature;
   };
 
@@ -306,6 +311,8 @@ export class ScraperManager {
     const primaryResult = await this.runProvider(primary, input, failures);
     let jobs = primaryResult?.jobs || [];
 
+    // Fix: align threshold with scrapeWithGoogleSecondary (was < 3, now < 5)
+    // to avoid firing expensive Camoufox for 3-4 result returns on niche queries.
     if (jobs.length < 5) {
       const secondaryResult = await this.runProvider(secondary, input, failures);
       if (secondaryResult?.jobs?.length) {
@@ -313,7 +320,7 @@ export class ScraperManager {
       }
     }
 
-    if (jobs.length < 3) {
+    if (jobs.length < 5) {
       const tertiaryResult = await this.runProvider(tertiary, input, failures);
       if (tertiaryResult?.jobs?.length) {
         jobs = mergeJobs(jobs, tertiaryResult.jobs);

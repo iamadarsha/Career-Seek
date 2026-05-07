@@ -30,16 +30,22 @@ export function buildQueryFromProfile(profile: any): JobQuery {
   }
 
   // Process expected salary
-  // We store the raw target then let search-broadener expand it to a ±20% range.
+  // Fix (issue 10): set both salaryMin AND salaryMax to the target value so
+  // applySearchBroadening produces a proper ±20% band and Naukri receives
+  // both sminlakh and smaxlakh params. Previously salaryMax was never set,
+  // so the upper bound was always undefined and smaxlakh was never sent.
   let salaryMin: number | undefined;
+  let salaryMax: number | undefined;
   if (profile.expectedSalary) {
     const lowerSalary = String(profile.expectedSalary).toLowerCase();
     const match = lowerSalary.match(/(\d+(?:\.\d+)?)/);
     if (match) {
       const value = Number(match[1]);
-      salaryMin = /lpa|lac|lakh|lakhs/.test(lowerSalary)
+      const target = /lpa|lac|lakh|lakhs/.test(lowerSalary)
         ? Math.round(value * 100_000)
         : Math.round(value);
+      salaryMin = target;
+      salaryMax = target; // same point; broadening will widen to ±20%
     }
   }
 
@@ -79,6 +85,7 @@ export function buildQueryFromProfile(profile: any): JobQuery {
     experienceMin,
     experienceMax,
     salaryMin,
+    salaryMax,
     keywords: parseJsonSafe(profile.mustHaveKeywords),
     avoidKeywords: parseJsonSafe(profile.avoidKeywords),
   };
@@ -97,10 +104,15 @@ export function buildQueryFromProfile(profile: any): JobQuery {
 
 // Applies expansion rules when a scan yields too few results
 export function expandQuery(query: JobQuery, level: number): JobQuery {
-  const expanded = { ...query };
-  // Clone arrays to avoid mutating the original
-  expanded.titleVariants = [...query.titleVariants];
-  expanded.locations = [...query.locations];
+  // Fix (issue 7): deep-clone all array fields so mutations in any expansion
+  // level don't bleed back into the caller's initialQuery reference.
+  const expanded: JobQuery = {
+    ...query,
+    titleVariants: [...(query.titleVariants || [])],
+    locations: [...(query.locations || [])],
+    keywords: [...(query.keywords || [])],
+    avoidKeywords: [...(query.avoidKeywords || [])],
+  };
 
   switch (level) {
     case 1:

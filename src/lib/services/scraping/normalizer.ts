@@ -1,5 +1,15 @@
 import { NormalizedJob, RawScrapedJob } from './types';
 
+// Portal-aware LPA multiplier default.
+// Naukri always reports salary in LPA (integer or float like "15" or "12.5").
+// When no explicit unit keyword is detected, fall back to LPA for Naukri
+// instead of 1 (raw INR), which would store salaryMin = 15 instead of 1,500,000.
+const PORTAL_DEFAULT_MULTIPLIER: Record<string, number> = {
+  naukri: 100_000,
+  foundit: 100_000,
+  hirist: 100_000,
+  instahyre: 100_000,
+};
 
 export function normalizeJob(raw: RawScrapedJob, scanId: number, searchProfileId: number, ownerProfileId: number): NormalizedJob {
   const normalized: NormalizedJob = {
@@ -54,7 +64,6 @@ export function normalizeJob(raw: RawScrapedJob, scanId: number, searchProfileId
   const inferredExperienceText = raw.experienceText || String(raw.snippet || '').match(/(?:experience|exp\.?)\s*[:\-]?\s*(\d+(?:\s*-\s*\d+)?\+?\s*(?:years?|yrs?))/i)?.[1];
   if (inferredExperienceText) {
     normalized.experienceText ||= inferredExperienceText;
-    // E.g., "3-5 Yrs" or "5+ Years"
     const expMatch = inferredExperienceText.match(/(\d+)(?:\s*-\s*(\d+))?/);
     if (expMatch) {
       normalized.experienceMin = parseInt(expMatch[1], 10);
@@ -78,11 +87,17 @@ export function normalizeJob(raw: RawScrapedJob, scanId: number, searchProfileId
       return undefined;
     };
     const rangeMatch = compactLower.match(/(\d+(?:\.\d+)?)\s*(cr|crore|lpa|lac|lakh|lakhs|k)?\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)\s*(cr|crore|lpa|lac|lakh|lakhs|k)?/);
+
+    // Fix (issue 9): when no explicit unit is found in the salary text, fall back
+    // to a portal-aware default multiplier. Naukri/Foundit/Hirist always report
+    // salary in LPA (e.g. "15"), so without this fallback salaryMin = 15 INR
+    // instead of 1,500,000 INR, breaking ATS salary scoring.
+    const portalDefault = PORTAL_DEFAULT_MULTIPLIER[raw.portal] ?? 1;
     const multiplier =
       unitMultiplier(rangeMatch?.[2]) ||
       unitMultiplier(rangeMatch?.[4]) ||
       unitMultiplier(compactLower) ||
-      1;
+      portalDefault;
 
     if (rangeMatch && multiplier > 1) {
       normalized.salaryMin = Math.round(Number(rangeMatch[1]) * multiplier);
@@ -103,6 +118,10 @@ export function normalizeJob(raw: RawScrapedJob, scanId: number, searchProfileId
       normalized.salaryCurrency = 'USD';
     }
     if (!normalized.salaryCurrency && /lpa|lac|lakh|lakhs|₹|inr/.test(lower)) {
+      normalized.salaryCurrency = 'INR';
+    }
+    // Portal-default portals always report INR
+    if (!normalized.salaryCurrency && portalDefault === 100_000) {
       normalized.salaryCurrency = 'INR';
     }
   }
