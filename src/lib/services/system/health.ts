@@ -11,6 +11,7 @@ import { getBaseAppDir, getStorageFallbackStatus } from '@/lib/local-paths';
 import { getAIManager } from '@/lib/ai/manager';
 import { buildDefaultScraperManager } from '@/lib/services/scraping/scraper-manager';
 import { pythonCandidates } from '@/lib/services/scraping/python-path';
+import { readEnvKeys } from '@/lib/env-writer';
 
 const execFileAsync = promisify(execFile);
 const CHROMIUM_HEALTH_CACHE_MS = 5 * 60 * 1000;
@@ -60,7 +61,9 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
 }
 
 async function redisHealth(): Promise<HealthCheckItem> {
-  const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+  // Read Redis URL live from .env.local so post-startup config changes are reflected
+  const liveRedisEnv = readEnvKeys(['REDIS_URL']);
+  const redisUrl = liveRedisEnv.REDIS_URL || process.env.REDIS_URL || 'redis://127.0.0.1:6379';
   const client = new Redis(redisUrl, {
     lazyConnect: true,
     maxRetriesPerRequest: 0,
@@ -480,6 +483,9 @@ async function companyAtsReachHealth(): Promise<HealthCheckItem> {
 }
 
 export async function checkSystemHealth(): Promise<SystemHealth> {
+  // Read service URLs live from .env.local so post-startup config changes are reflected
+  const liveServiceEnv = readEnvKeys(['QDRANT_URL', 'JOBS_QDRANT_URL', 'MEILI_HOST', 'MEILISEARCH_URL']);
+
   const [
     redis,
     meili,
@@ -495,8 +501,22 @@ export async function checkSystemHealth(): Promise<SystemHealth> {
     companyAtsReach,
   ] = await Promise.all([
     redisHealth(),
-    httpHealth('meilisearch', 'Meilisearch local index', process.env.MEILI_HOST || process.env.MEILISEARCH_URL || 'http://127.0.0.1:7700', '/health', true, 'Search will fall back to saved local results. Run ./setup.sh --repair to restart Meilisearch.'),
-    httpHealth('qdrant', 'Qdrant vector store', process.env.QDRANT_URL || process.env.JOBS_QDRANT_URL, '/healthz', true, 'Dream Match will use deterministic in-memory matching unless Qdrant is enabled.'),
+    httpHealth(
+      'meilisearch',
+      'Meilisearch local index',
+      liveServiceEnv.MEILI_HOST || liveServiceEnv.MEILISEARCH_URL || process.env.MEILI_HOST || process.env.MEILISEARCH_URL || 'http://127.0.0.1:7700',
+      '/health',
+      true,
+      'Search will fall back to saved local results. Run ./setup.sh --repair to restart Meilisearch.',
+    ),
+    httpHealth(
+      'qdrant',
+      'Qdrant vector store',
+      liveServiceEnv.QDRANT_URL || liveServiceEnv.JOBS_QDRANT_URL || process.env.QDRANT_URL || process.env.JOBS_QDRANT_URL,
+      '/healthz',
+      true,
+      'Dream Match will use deterministic in-memory matching unless Qdrant is enabled.',
+    ),
     chromiumHealth(),
     pythonHealth(),
     databaseHealth(),
