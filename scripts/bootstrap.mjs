@@ -3,6 +3,7 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 import {
   ensureDataDirectories,
+  ensureEnvFile,
   ensureSettingsFile,
   getBaseDir,
   loadDotEnv,
@@ -112,6 +113,11 @@ if (repair) console.log('Mode:    repair');
 ensureDataDirectories(baseDir);
 const settingsPath = ensureSettingsFile(baseDir);
 console.log(`Settings: ${settingsPath}`);
+
+// Ensure .env.local exists with REDIS_URL so the BullMQ worker always starts.
+ensureEnvFile(root);
+// Reload so subsequent run() calls inherit the new env values.
+loadDotEnv();
 
 if (repair) {
   const backupPath = await backupSqliteDatabase(baseDir, 'repair-before-migrations');

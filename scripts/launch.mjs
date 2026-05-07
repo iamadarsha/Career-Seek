@@ -4,6 +4,7 @@ import path from 'path';
 import { z } from 'zod';
 import {
   ensureDataDirectories,
+  ensureEnvFile,
   ensureSettingsFile,
   getBaseDir,
   loadDotEnv,
@@ -14,6 +15,11 @@ import { startNativeServices, nativeServiceSelection } from './lib/native-binari
 import { backupSqliteDatabase, verifyAndRecoverSqliteDatabase } from './lib/sqlite-backup.mjs';
 import { detectPortablePythonBin } from './lib/portable-python.mjs';
 
+// Ensure .env.local + data directories exist before reading any config.
+// Belt-and-suspenders: bootstrap does this too, but `npm run launch` can
+// be called directly (e.g. after a git pull) without re-running bootstrap.
+ensureEnvFile();
+ensureDataDirectories();
 loadDotEnv();
 
 const args = new Set(process.argv.slice(2));
