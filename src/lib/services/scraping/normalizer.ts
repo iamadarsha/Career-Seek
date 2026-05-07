@@ -14,29 +14,32 @@ export function normalizeJob(raw: RawScrapedJob, scanId: number, searchProfileId
   if (raw.postedDateText) {
     try {
       const text = raw.postedDateText.toLowerCase();
-      const now = new Date();
       if (text.includes('today') || text.includes('just now') || text.includes('hour') || text.includes('minute')) {
-        normalized.postedDate = now;
+        normalized.postedDate = new Date();
       } else if (text.includes('yesterday')) {
-        now.setDate(now.getDate() - 1);
-        normalized.postedDate = now;
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        normalized.postedDate = d;
       } else if (text.includes('day')) {
         const match = text.match(/(\d+)/);
         if (match) {
-          now.setDate(now.getDate() - parseInt(match[1], 10));
-          normalized.postedDate = now;
+          const d = new Date();
+          d.setDate(d.getDate() - parseInt(match[1], 10));
+          normalized.postedDate = d;
         }
       } else if (text.includes('week')) {
         const match = text.match(/(\d+)/);
         if (match) {
-          now.setDate(now.getDate() - parseInt(match[1], 10) * 7);
-          normalized.postedDate = now;
+          const d = new Date();
+          d.setDate(d.getDate() - parseInt(match[1], 10) * 7);
+          normalized.postedDate = d;
         }
       } else if (text.includes('month')) {
         const match = text.match(/(\d+)/);
         if (match) {
-          now.setMonth(now.getMonth() - parseInt(match[1], 10));
-          normalized.postedDate = now;
+          const d = new Date();
+          d.setMonth(d.getMonth() - parseInt(match[1], 10));
+          normalized.postedDate = d;
         }
       } else {
         const parsed = Date.parse(raw.postedDateText);

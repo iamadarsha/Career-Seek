@@ -32,40 +32,52 @@ export function findDuplicates(newJobs: NormalizedJob[], existingJobs: Normalize
     existingBySignature.set(generateJobSignature(ej), ej.id as number);
   }
 
+  // Track within-batch seen keys separately so in-batch duplicates are never
+  // stored with a fake negative ID that would later escape the > 0 filter.
+  const batchUrls = new Set<string>();
+  const batchIds = new Set<string>();
+  const batchSignatures = new Set<string>();
+
   for (const nj of newJobs) {
     let duplicateId: number | undefined;
     let matchType: string | undefined;
 
-    // 1. Exact URL Match
+    const sig = generateJobSignature(nj);
+    const portalExternalKey = nj.externalId ? `${nj.portal}-${nj.externalId}` : '';
+
+    // 1. Exact URL Match — check persisted jobs first, then in-batch
     if (existingByUrl.has(nj.url)) {
       duplicateId = existingByUrl.get(nj.url);
       matchType = 'exact_url';
-    } 
+    } else if (batchUrls.has(nj.url)) {
+      // in-batch URL duplicate — skip silently (don't add to duplicates table)
+      continue;
+    }
     // 2. External ID Match
-    else if (nj.externalId && existingById.has(`${nj.portal}-${nj.externalId}`)) {
-      duplicateId = existingById.get(`${nj.portal}-${nj.externalId}`);
+    else if (portalExternalKey && existingById.has(portalExternalKey)) {
+      duplicateId = existingById.get(portalExternalKey);
       matchType = 'external_id';
+    } else if (portalExternalKey && batchIds.has(portalExternalKey)) {
+      continue;
     }
     // 3. Signature Match
-    else {
-      const sig = generateJobSignature(nj);
-      if (existingBySignature.has(sig)) {
-        duplicateId = existingBySignature.get(sig);
-        matchType = 'signature';
-      }
+    else if (existingBySignature.has(sig)) {
+      duplicateId = existingBySignature.get(sig);
+      matchType = 'signature';
+    } else if (batchSignatures.has(sig)) {
+      continue;
     }
 
-    if (duplicateId && matchType) {
+    if (duplicateId !== undefined && matchType) {
       duplicates.push({ newJob: nj, existingId: duplicateId, matchType });
     } else {
       unique.push(nj);
-      // Temporarily add to signatures to avoid self-duplicates in this batch
-      const tempId = -Math.random(); // Dummy ID for in-batch deduplication
-      existingByUrl.set(nj.url, tempId);
-      if (nj.externalId) existingById.set(`${nj.portal}-${nj.externalId}`, tempId);
-      existingBySignature.set(generateJobSignature(nj), tempId);
+      // Register in batch sets so subsequent jobs in this batch are caught
+      batchUrls.add(nj.url);
+      if (portalExternalKey) batchIds.add(portalExternalKey);
+      batchSignatures.add(sig);
     }
   }
 
-  return { unique, duplicates: duplicates.filter(d => d.existingId > 0) }; // Only real duplicates
+  return { unique, duplicates: duplicates.filter(d => d.existingId > 0) };
 }

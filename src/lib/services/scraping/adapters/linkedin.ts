@@ -15,7 +15,8 @@ const LINKEDIN_SOURCE_HEALTH = {
 export class LinkedInAdapter extends BasePortalAdapter {
   identifier = 'linkedin';
   displayName = 'LinkedIn';
-  private readonly maxJobs = Number(process.env.JOBHUNT_SOURCE_LIMIT || 30);
+  // Bug fix: Number('') === 0 when env var is empty string; use || 30 fallback
+  private readonly maxJobs = Number(process.env.JOBHUNT_SOURCE_LIMIT || 30) || 30;
   private static sessionAuthenticated = false;
 
   /**

@@ -215,76 +215,76 @@ export class NaukriAdapter extends BasePortalAdapter {
     for (const keyword of roleVariants) {
       for (const location of locations) {
         for (let pageNo = 1; jobs.length < this.maxJobs && pageNo <= 2; pageNo++) {
-        // Build salary range filter: Naukri uses salary in LPA (integer)
-        // Convert INR to LPA (1 LPA = 100_000 INR)
-        const salaryMinLPA = query.salaryMin != null
-          ? Math.floor(query.salaryMin / 100_000)
-          : undefined;
-        const salaryMaxLPA = query.salaryMax != null
-          ? Math.ceil(query.salaryMax / 100_000)
-          : undefined;
+          // Build salary range filter: Naukri uses salary in LPA (integer)
+          // Convert INR to LPA (1 LPA = 100_000 INR)
+          const salaryMinLPA = query.salaryMin != null
+            ? Math.floor(query.salaryMin / 100_000)
+            : undefined;
+          const salaryMaxLPA = query.salaryMax != null
+            ? Math.ceil(query.salaryMax / 100_000)
+            : undefined;
 
-        const params = new URLSearchParams({
-          noOfResults: '20',
-          urlType: 'search_by_keyword',
-          searchType: 'adv',
-          keyword,
-          k: keyword,
-          location,
-          l: location,
-          pageNo: String(pageNo),
-          experience: query.experienceMin != null ? String(query.experienceMin) : '',
-          // Salary range — only include when we have meaningful values
-          ...(salaryMinLPA != null && salaryMinLPA > 0 ? { sminlakh: String(salaryMinLPA) } : {}),
-          ...(salaryMaxLPA != null && salaryMaxLPA > 0 ? { smaxlakh: String(salaryMaxLPA) } : {}),
-        });
-        const url = `https://www.naukri.com/jobapi/v3/search?${params.toString()}`;
-        onProgress?.(`Querying Naukri public job API for "${keyword}" in ${location} (page ${pageNo})`);
+          const params = new URLSearchParams({
+            noOfResults: '20',
+            urlType: 'search_by_keyword',
+            searchType: 'adv',
+            keyword,
+            k: keyword,
+            location,
+            l: location,
+            pageNo: String(pageNo),
+            experience: query.experienceMin != null ? String(query.experienceMin) : '',
+            // Salary range — only include when we have meaningful values
+            ...(salaryMinLPA != null && salaryMinLPA > 0 ? { sminlakh: String(salaryMinLPA) } : {}),
+            ...(salaryMaxLPA != null && salaryMaxLPA > 0 ? { smaxlakh: String(salaryMaxLPA) } : {}),
+          });
+          const url = `https://www.naukri.com/jobapi/v3/search?${params.toString()}`;
+          onProgress?.(`Querying Naukri public job API for "${keyword}" in ${location} (page ${pageNo})`);
 
-        const response = await (context as any).request.get(url, {
-          headers: {
-            accept: 'application/json',
-            appid: '109',
-            systemid: '109',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-          },
-          timeout: 30_000,
-        });
+          const response = await (context as any).request.get(url, {
+            headers: {
+              accept: 'application/json',
+              appid: '109',
+              systemid: '109',
+              'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            },
+            timeout: 30_000,
+          });
 
-        if (response.status() === 401 || response.status() === 403) {
-          throw new Error('auth_gate: Naukri API requires auth or rejected this request');
-        }
-        if (response.status() === 406) {
-          const body = await response.text().catch(() => '');
-          if (/recaptcha|captcha/i.test(body)) {
-            throw new Error('captcha: Naukri API requires recaptcha for this request');
+          if (response.status() === 401 || response.status() === 403) {
+            throw new Error('auth_gate: Naukri API requires auth or rejected this request');
           }
-          throw new Error('provider_api_error: Naukri API rejected content negotiation');
-        }
-        if (response.status() === 429) {
-          throw new Error('blocked: Naukri API rate-limited this request');
-        }
-        if (!response.ok()) {
-          throw new Error(`browser_error: Naukri API returned HTTP ${response.status()}`);
-        }
-
-        const payload = await response.json().catch(() => null);
-        const rows = this.extractRows(payload);
-        if (!rows.length) break;
-
-        for (const row of rows) {
-          const mapped = this.mapApiJob(row);
-          if (mapped) {
-            const dedupeKey = `${mapped.url.toLowerCase()}::${mapped.title.toLowerCase()}`;
-            if (!seen.has(dedupeKey)) {
-              seen.add(dedupeKey);
-              jobs.push(mapped);
+          if (response.status() === 406) {
+            const body = await response.text().catch(() => '');
+            if (/recaptcha|captcha/i.test(body)) {
+              throw new Error('captcha: Naukri API requires recaptcha for this request');
             }
+            throw new Error('provider_api_error: Naukri API rejected content negotiation');
           }
-          if (jobs.length >= this.maxJobs) break;
-        }
+          if (response.status() === 429) {
+            throw new Error('blocked: Naukri API rate-limited this request');
+          }
+          if (!response.ok()) {
+            throw new Error(`browser_error: Naukri API returned HTTP ${response.status()}`);
+          }
+
+          const payload = await response.json().catch(() => null);
+          const rows = this.extractRows(payload);
+          if (!rows.length) break;
+
+          for (const row of rows) {
+            const mapped = this.mapApiJob(row);
+            if (mapped) {
+              const dedupeKey = `${mapped.url.toLowerCase()}::${mapped.title.toLowerCase()}`;
+              if (!seen.has(dedupeKey)) {
+                seen.add(dedupeKey);
+                jobs.push(mapped);
+              }
+            }
+            if (jobs.length >= this.maxJobs) break;
+          }
+        } // end pageNo loop
       }
-    }
     }
 
     if (jobs.length === 0) {

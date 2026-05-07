@@ -209,178 +209,181 @@ export class ScanOrchestrator {
 
       const scraperManager = buildDefaultScraperManager(this.adapters);
 
-      // 4. Run portals sequentially
-      for (let i = 0; i < portalsToScan.length; i++) {
-        const portalId = portalsToScan[i];
-        const adapterKey = resolveSourceId(portalId);
-        const adapter = this.adapters.get(adapterKey);
-        if (!adapter) {
+      try {
+        // 4. Run portals sequentially
+        for (let i = 0; i < portalsToScan.length; i++) {
+          const portalId = portalsToScan[i];
+          const adapterKey = resolveSourceId(portalId);
+          const adapter = this.adapters.get(adapterKey);
+          if (!adapter) {
+            const portalRun = db.insert(scanPortalRuns).values({
+              scanId: scan.id,
+              portal: portalId,
+              status: 'failed',
+              error: serializeSourceFailure({
+                code: 'unknown',
+                message: 'No scanner adapter is configured for this source.',
+              }),
+              jobsFound: 0,
+              startedAt: new Date(),
+              finishedAt: new Date()
+            }).returning().get();
+            failedPortals++;
+            onProgress?.({ scanId: scan.id, portal: portalId, message: `Skipped ${portalId}: adapter unavailable.`, progress: Math.floor(10 + (i / portalsToScan.length) * 80) });
+            continue;
+          }
+
+          // Create portal run record
           const portalRun = db.insert(scanPortalRuns).values({
             scanId: scan.id,
             portal: portalId,
-            status: 'failed',
-            error: serializeSourceFailure({
-              code: 'unknown',
-              message: 'No scanner adapter is configured for this source.',
-            }),
-            jobsFound: 0,
-            startedAt: new Date(),
-            finishedAt: new Date()
+            status: 'running',
+            startedAt: new Date()
           }).returning().get();
-          failedPortals++;
-          onProgress?.({ scanId: scan.id, portal: portalId, message: `Skipped ${portalId}: adapter unavailable.`, progress: Math.floor(10 + (i / portalsToScan.length) * 80) });
-          continue;
-        }
 
-        // Create portal run record
-        const portalRun = db.insert(scanPortalRuns).values({
-          scanId: scan.id,
-          portal: portalId,
-          status: 'running',
-          startedAt: new Date()
-        }).returning().get();
+          onProgress?.({ scanId: scan.id, portal: portalId, message: `Started scraping ${adapter.displayName}...` });
+          
+          const portalProgressBase = 10 + (i / portalsToScan.length) * 80;
 
-        onProgress?.({ scanId: scan.id, portal: portalId, message: `Started scraping ${adapter.displayName}...` });
-        
-        const portalProgressBase = 10 + (i / portalsToScan.length) * 80;
-
-        try {
-          if (context) {
-            const healthy = await adapter.healthCheck(context);
-            if (!healthy) {
-              onProgress?.({
-                scanId: scan.id,
-                portal: portalId,
-                message: `${adapter.displayName} health check was inconclusive; trying the search URL anyway.`,
-              });
+          try {
+            if (context) {
+              const healthy = await adapter.healthCheck(context);
+              if (!healthy) {
+                onProgress?.({
+                  scanId: scan.id,
+                  portal: portalId,
+                  message: `${adapter.displayName} health check was inconclusive; trying the search URL anyway.`,
+                });
+              }
             }
-          }
 
-          // Perform the scrape through provider chain: upstream libraries first,
-          // then the existing Playwright adapter when a browser is available.
-          let query = { ...initialQuery };
-          let scrapeResult = await scraperManager.scrape({
-            portal: portalId,
-            query,
-            context,
-            bypassCache: options.bypassCache,
-            onProgress: (msg) => {
-             onProgress?.({ scanId: scan.id, portal: portalId, message: msg, progress: Math.floor(portalProgressBase + 5) });
-            },
-          });
-
-          // Adaptive Expansion
-          // Trigger when a portal returns fewer than 10 jobs (raised from 5 — 6-9
-          // jobs is still too few to give users a meaningful ranked list).
-          // Max 5 expansion levels to match the full range in expandQuery().
-          let expansionLevel = 0;
-          while (scrapeResult.jobs.length < 10 && expansionLevel < 5 && shouldExpandPortal(portalId) && shouldExpandAfterResult(scrapeResult)) {
-            expansionLevel++;
-            const newQuery = expandQuery(query, expansionLevel);
-            onProgress?.({ scanId: scan.id, portal: portalId, message: `Too few results. Expanding search (level ${expansionLevel})...` });
-            
-            // Log expansion
-            db.insert(searchExpansions).values({
-              scanPortalRunId: portalRun.id,
-              reason: 'low_results',
-              oldQuery: JSON.stringify(query),
-              newQuery: JSON.stringify(newQuery),
-              timestamp: new Date()
-            }).run();
-
-            query = newQuery;
-            const expandedResult = await scraperManager.scrape({
+            // Perform the scrape through provider chain: upstream libraries first,
+            // then the existing Playwright adapter when a browser is available.
+            let query = { ...initialQuery };
+            let scrapeResult = await scraperManager.scrape({
               portal: portalId,
               query,
               context,
               bypassCache: options.bypassCache,
               onProgress: (msg) => {
-               onProgress?.({ scanId: scan.id, portal: portalId, message: msg });
+               onProgress?.({ scanId: scan.id, portal: portalId, message: msg, progress: Math.floor(portalProgressBase + 5) });
               },
             });
 
-            // Merge results
-            scrapeResult.jobs = [...scrapeResult.jobs, ...expandedResult.jobs];
-            if (expandedResult.error) scrapeResult.error = expandedResult.error;
-            if (expandedResult.failureCode) scrapeResult.failureCode = expandedResult.failureCode;
-          }
+            // Adaptive Expansion
+            // Trigger when a portal returns fewer than 10 jobs (raised from 5 — 6-9
+            // jobs is still too few to give users a meaningful ranked list).
+            // Max 5 expansion levels to match the full range in expandQuery().
+            let expansionLevel = 0;
+            while (scrapeResult.jobs.length < 10 && expansionLevel < 5 && shouldExpandPortal(portalId) && shouldExpandAfterResult(scrapeResult)) {
+              expansionLevel++;
+              const newQuery = expandQuery(query, expansionLevel);
+              onProgress?.({ scanId: scan.id, portal: portalId, message: `Too few results. Expanding search (level ${expansionLevel})...` });
+              
+              // Log expansion
+              db.insert(searchExpansions).values({
+                scanPortalRunId: portalRun.id,
+                reason: 'low_results',
+                oldQuery: JSON.stringify(query),
+                newQuery: JSON.stringify(newQuery),
+                timestamp: new Date()
+              }).run();
 
-          if (scrapeResult.jobs.length < 10 && !shouldExpandAfterResult(scrapeResult)) {
-            onProgress?.({
-              scanId: scan.id,
-              portal: portalId,
-              message: `Skipping query expansion for ${adapter.displayName}; source reported ${scrapeResult.failureCode}.`,
-            });
-          }
+              query = newQuery;
+              const expandedResult = await scraperManager.scrape({
+                portal: portalId,
+                query,
+                context,
+                bypassCache: options.bypassCache,
+                onProgress: (msg) => {
+                 onProgress?.({ scanId: scan.id, portal: portalId, message: msg });
+                },
+              });
 
-          // Normalize
-          onProgress?.({ scanId: scan.id, portal: portalId, message: 'Normalizing and deduplicating jobs...' });
-          const newNormalized = scrapeResult.jobs.map(j => normalizeJob(j, scan.id, searchProfileId, ownerProfileId));
+              // Merge results
+              scrapeResult.jobs = [...scrapeResult.jobs, ...expandedResult.jobs];
+              if (expandedResult.error) scrapeResult.error = expandedResult.error;
+              if (expandedResult.failureCode) scrapeResult.failureCode = expandedResult.failureCode;
+            }
 
-          // Deduplicate
-          const { unique, duplicates } = findDuplicates(newNormalized, existingJobs);
+            if (scrapeResult.jobs.length < 10 && !shouldExpandAfterResult(scrapeResult)) {
+              onProgress?.({
+                scanId: scan.id,
+                portal: portalId,
+                message: `Skipping query expansion for ${adapter.displayName}; source reported ${scrapeResult.failureCode}.`,
+              });
+            }
 
-          // Persist unique jobs
-          for (let jobIndex = 0; jobIndex < unique.length; jobIndex++) {
-            const job = unique[jobIndex];
-            const rawPayloadPath = persistRawPayload(job.portal, scan.id, jobIndex, job.rawPayload);
-            const inserted = db.insert(normalizedJobs).values(jobInsertValues(job, ownerProfileId, rawPayloadPath)).returning({ id: normalizedJobs.id }).get();
-            
-            existingJobs.push({ ...job, id: inserted.id });
-          }
+            // Normalize
+            onProgress?.({ scanId: scan.id, portal: portalId, message: 'Normalizing and deduplicating jobs...' });
+            const newNormalized = scrapeResult.jobs.map(j => normalizeJob(j, scan.id, searchProfileId, ownerProfileId));
 
-          // Persist duplicates
-          for (let dupIndex = 0; dupIndex < duplicates.length; dupIndex++) {
-            const dup = duplicates[dupIndex];
-            const rawPayloadPath = persistRawPayload(dup.newJob.portal, scan.id, unique.length + dupIndex, dup.newJob.rawPayload);
-            const inserted = db.insert(normalizedJobs).values(jobInsertValues(dup.newJob, ownerProfileId, rawPayloadPath)).returning({ id: normalizedJobs.id }).get();
+            // Deduplicate
+            const { unique, duplicates } = findDuplicates(newNormalized, existingJobs);
 
-            db.insert(jobDuplicates).values({
-              canonicalJobId: dup.existingId,
-              duplicateJobId: inserted.id,
-              matchType: dup.matchType,
-              detectedAt: new Date()
-            }).run();
-          }
+            // Persist unique jobs
+            for (let jobIndex = 0; jobIndex < unique.length; jobIndex++) {
+              const job = unique[jobIndex];
+              const rawPayloadPath = persistRawPayload(job.portal, scan.id, jobIndex, job.rawPayload);
+              const inserted = db.insert(normalizedJobs).values(jobInsertValues(job, ownerProfileId, rawPayloadPath)).returning({ id: normalizedJobs.id }).get();
+              
+              existingJobs.push({ ...job, id: inserted.id });
+            }
 
-          totalJobsFound += scrapeResult.jobs.length;
+            // Persist duplicates
+            for (let dupIndex = 0; dupIndex < duplicates.length; dupIndex++) {
+              const dup = duplicates[dupIndex];
+              const rawPayloadPath = persistRawPayload(dup.newJob.portal, scan.id, unique.length + dupIndex, dup.newJob.rawPayload);
+              const inserted = db.insert(normalizedJobs).values(jobInsertValues(dup.newJob, ownerProfileId, rawPayloadPath)).returning({ id: normalizedJobs.id }).get();
 
-          // Update portal run
-          db.update(scanPortalRuns).set({
-            status: scrapeResult.error ? (scrapeResult.jobs.length > 0 ? 'complete' : 'failed') : 'complete',
-            error: scrapeResult.error
-              ? serializeSourceFailure({
-                  code: (scrapeResult.failureCode as any) || classifySourceFailure(scrapeResult.error).code,
-                  message: scrapeResult.error,
-                  debugSnapshotPath: scrapeResult.debugSnapshotPath,
-                  sourceHealthLabel: scrapeResult.sourceHealthLabel as any,
-                  gracefulFallback: scrapeResult.gracefulFallback,
-                })
-              : null,
-            jobsFound: scrapeResult.jobs.length,
-            finishedAt: new Date()
-          }).where(eq(scanPortalRuns.id, portalRun.id)).run();
+              db.insert(jobDuplicates).values({
+                canonicalJobId: dup.existingId,
+                duplicateJobId: inserted.id,
+                matchType: dup.matchType,
+                detectedAt: new Date()
+              }).run();
+            }
 
-          if (scrapeResult.error && scrapeResult.jobs.length === 0) {
+            totalJobsFound += scrapeResult.jobs.length;
+
+            // Update portal run
+            db.update(scanPortalRuns).set({
+              status: scrapeResult.error ? (scrapeResult.jobs.length > 0 ? 'complete' : 'failed') : 'complete',
+              error: scrapeResult.error
+                ? serializeSourceFailure({
+                    code: (scrapeResult.failureCode as any) || classifySourceFailure(scrapeResult.error).code,
+                    message: scrapeResult.error,
+                    debugSnapshotPath: scrapeResult.debugSnapshotPath,
+                    sourceHealthLabel: scrapeResult.sourceHealthLabel as any,
+                    gracefulFallback: scrapeResult.gracefulFallback,
+                  })
+                : null,
+              jobsFound: scrapeResult.jobs.length,
+              finishedAt: new Date()
+            }).where(eq(scanPortalRuns.id, portalRun.id)).run();
+
+            if (scrapeResult.error && scrapeResult.jobs.length === 0) {
+              failedPortals++;
+            }
+
+            onProgress?.({ scanId: scan.id, portal: portalId, message: `Finished ${adapter.displayName}: ${scrapeResult.jobs.length} jobs.`, progress: Math.floor(portalProgressBase + (100 - portalProgressBase) / portalsToScan.length) });
+
+          } catch (e: any) {
+            logger.error({ err: e, portalId }, 'Error in portal scan');
             failedPortals++;
+            const failure = classifySourceFailure(e);
+            db.update(scanPortalRuns).set({
+              status: 'failed',
+              error: serializeSourceFailure(failure),
+              finishedAt: new Date()
+            }).where(eq(scanPortalRuns.id, portalRun.id)).run();
+            onProgress?.({ scanId: scan.id, portal: portalId, message: `Failed (${failure.code}): ${failure.message}` });
           }
-
-          onProgress?.({ scanId: scan.id, portal: portalId, message: `Finished ${adapter.displayName}: ${scrapeResult.jobs.length} jobs.`, progress: Math.floor(portalProgressBase + (100 - portalProgressBase) / portalsToScan.length) });
-
-        } catch (e: any) {
-          logger.error({ err: e, portalId }, 'Error in portal scan');
-          failedPortals++;
-          const failure = classifySourceFailure(e);
-          db.update(scanPortalRuns).set({
-            status: 'failed',
-            error: serializeSourceFailure(failure),
-            finishedAt: new Date()
-          }).where(eq(scanPortalRuns.id, portalRun.id)).run();
-          onProgress?.({ scanId: scan.id, portal: portalId, message: `Failed (${failure.code}): ${failure.message}` });
         }
+      } finally {
+        // Always close the browser — even if a portal throws after init
+        await this.browserManager.close();
       }
-
-      await this.browserManager.close();
 
       // Mark scan complete
       db.update(scans).set({
