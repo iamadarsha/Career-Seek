@@ -202,12 +202,12 @@ const serverArgs = devMode
 
 const appServer = spawnManaged(devMode ? 'Next.js dev server' : 'Next.js production server', npmCmd, serverArgs);
 void waitForAppAndOpen();
+// Default to local Redis when no explicit REDIS_URL is set — ensure-redis.mjs has
+// already started or confirmed Redis at this point, so we can always launch the worker.
+const effectiveRedisUrl = runtimeEnv.REDIS_URL || 'redis://127.0.0.1:6379';
+runtimeEnv = { ...runtimeEnv, REDIS_URL: effectiveRedisUrl };
 let jobWorker = null;
-if (runtimeEnv.REDIS_URL) {
-  jobWorker = spawnManaged('background job worker', npmCmd, ['run', 'worker']);
-} else {
-  console.warn('[launch] Background worker not started because Redis is not configured.');
-}
+jobWorker = spawnManaged('background job worker', npmCmd, ['run', 'worker']);
 if (process.env.CAREER_SEEK_ENABLE_BULL_BOARD === '1') {
   spawnManaged('Bull Board', npmCmd, ['run', 'bull-board']);
 }
