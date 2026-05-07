@@ -5,7 +5,10 @@ export interface JobQuery {
   companyTypes?: string[];
   isRemote?: boolean;
   isHybrid?: boolean;
+  /** Lower bound of salary search range (in the currency's base unit, e.g. INR) */
   salaryMin?: number;
+  /** Upper bound of salary search range. Set by search-broadener from the user's target salary. */
+  salaryMax?: number;
   experienceMin?: number;
   experienceMax?: number;
   keywords: string[];

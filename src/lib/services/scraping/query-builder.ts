@@ -1,5 +1,6 @@
 import { JobQuery } from './types';
 import { normalizeRolePreferences } from '../search-preferences';
+import { applySearchBroadening, expandLocations } from './search-broadener';
 
 // Converts a unified search profile into a normalized JobQuery for the orchestrator
 export function buildQueryFromProfile(profile: any): JobQuery {
@@ -29,6 +30,7 @@ export function buildQueryFromProfile(profile: any): JobQuery {
   }
 
   // Process expected salary
+  // We store the raw target then let search-broadener expand it to a ±20% range.
   let salaryMin: number | undefined;
   if (profile.expectedSalary) {
     const lowerSalary = String(profile.expectedSalary).toLowerCase();
@@ -51,26 +53,46 @@ export function buildQueryFromProfile(profile: any): JobQuery {
     .filter(Boolean);
   const companyTypes = rawCompanyTypes
     .filter((item: string) => !item.toLowerCase().startsWith('target_company:'));
-  const locations = rawLocations
+
+  const rawNormalizedLocations = rawLocations
     .map((location: string) => String(location || '').trim())
     .filter(Boolean)
     .map((location: string) => /^(anywhere\s+in\s+)?india$|^anywhere$|^any location$|^all india$/i.test(location)
       ? 'India'
       : location);
 
-  return {
+  const baseLocations: string[] = rawNormalizedLocations.length
+    ? Array.from(new Set(rawNormalizedLocations))
+    : ['India'];
+
+  const isRemote = profile.workModel?.toLowerCase().includes('remote') ?? false;
+  const isHybrid = profile.workModel?.toLowerCase().includes('hybrid') ?? false;
+
+  // Build the base query
+  const baseQuery: JobQuery = {
     titleVariants,
-    locations: locations.length ? Array.from(new Set(locations)) : ['India'],
+    locations: baseLocations,
     targetCompanies,
     companyTypes,
-    isRemote: profile.workModel?.toLowerCase().includes('remote'),
-    isHybrid: profile.workModel?.toLowerCase().includes('hybrid'),
+    isRemote,
+    isHybrid,
     experienceMin,
     experienceMax,
     salaryMin,
     keywords: parseJsonSafe(profile.mustHaveKeywords),
     avoidKeywords: parseJsonSafe(profile.avoidKeywords),
   };
+
+  // Apply search broadening:
+  // - Salary target → ±20% range (12–18 LPA when user says 15 LPA)
+  // - Location aliases (Bangalore → also Bengaluru, etc.)
+  // - Remote added to location list when work model includes remote/hybrid
+  // - Experience band widened by 1 year each side
+  return applySearchBroadening(baseQuery, {
+    allowRemote: isRemote || isHybrid,
+    widenExperience: true,
+    maxLocations: 8,
+  });
 }
 
 // Applies expansion rules when a scan yields too few results
@@ -82,21 +104,42 @@ export function expandQuery(query: JobQuery, level: number): JobQuery {
 
   switch (level) {
     case 1:
-      // Level 1: broaden location radius or region, or include remote
-      if (!expanded.isRemote) expanded.isRemote = true;
+      // Level 1: add Remote to location list and mark isRemote
+      if (!expanded.isRemote) {
+        expanded.isRemote = true;
+        expanded.locations = expandLocations(expanded.locations, { addRemote: true, maxLocations: 10 });
+      }
       break;
     case 2:
-      // Level 2: widen experience band
-      if (expanded.experienceMin && expanded.experienceMin > 0) expanded.experienceMin -= 1;
-      if (expanded.experienceMax) expanded.experienceMax += 2;
+      // Level 2: widen experience band further
+      if (expanded.experienceMin != null && expanded.experienceMin > 0) {
+        expanded.experienceMin = Math.max(0, expanded.experienceMin - 1);
+      }
+      if (expanded.experienceMax != null) {
+        expanded.experienceMax = expanded.experienceMax + 2;
+      }
       break;
     case 3:
-      // Level 3: relax salary floor
-      if (expanded.salaryMin && expanded.salaryMin > 0) expanded.salaryMin = Math.max(0, expanded.salaryMin * 0.8);
+      // Level 3: widen salary range by another 20% on each side
+      if (expanded.salaryMin != null && expanded.salaryMin > 0) {
+        expanded.salaryMin = Math.max(0, Math.round(expanded.salaryMin * 0.8));
+      }
+      if (expanded.salaryMax != null && expanded.salaryMax > 0) {
+        expanded.salaryMax = Math.round(expanded.salaryMax * 1.2);
+      }
       break;
     case 4:
-      // Level 4: drop some avoid keywords
+      // Level 4: drop avoid keywords so more results come through
       expanded.avoidKeywords = [];
+      break;
+    case 5:
+      // Level 5: add "India" as catch-all location for any remaining portals
+      if (!expanded.locations.includes('India')) {
+        expanded.locations = [...expanded.locations, 'India'];
+      }
+      // Also remove salary floor/ceiling to maximise results
+      expanded.salaryMin = undefined;
+      expanded.salaryMax = undefined;
       break;
   }
   return expanded;

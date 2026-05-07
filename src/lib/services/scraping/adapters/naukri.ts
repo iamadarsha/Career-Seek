@@ -215,6 +215,15 @@ export class NaukriAdapter extends BasePortalAdapter {
     for (const keyword of roleVariants) {
       for (const location of locations) {
         for (let pageNo = 1; jobs.length < this.maxJobs && pageNo <= 2; pageNo++) {
+        // Build salary range filter: Naukri uses salary in LPA (integer)
+        // Convert INR to LPA (1 LPA = 100_000 INR)
+        const salaryMinLPA = query.salaryMin != null
+          ? Math.floor(query.salaryMin / 100_000)
+          : undefined;
+        const salaryMaxLPA = query.salaryMax != null
+          ? Math.ceil(query.salaryMax / 100_000)
+          : undefined;
+
         const params = new URLSearchParams({
           noOfResults: '20',
           urlType: 'search_by_keyword',
@@ -225,6 +234,9 @@ export class NaukriAdapter extends BasePortalAdapter {
           l: location,
           pageNo: String(pageNo),
           experience: query.experienceMin != null ? String(query.experienceMin) : '',
+          // Salary range — only include when we have meaningful values
+          ...(salaryMinLPA != null && salaryMinLPA > 0 ? { sminlakh: String(salaryMinLPA) } : {}),
+          ...(salaryMaxLPA != null && salaryMaxLPA > 0 ? { smaxlakh: String(salaryMaxLPA) } : {}),
         });
         const url = `https://www.naukri.com/jobapi/v3/search?${params.toString()}`;
         onProgress?.(`Querying Naukri public job API for "${keyword}" in ${location} (page ${pageNo})`);
